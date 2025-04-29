@@ -1,5 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useMeeting } from "../context/MeetingContext";
@@ -25,7 +23,6 @@ import {
   InputAdornment,
   ButtonGroup,
   alpha,
-  Skeleton,
   Fab,
   Chip,
 } from "@mui/material";
@@ -54,9 +51,9 @@ import DashboardShimmer from "../components/UI/DashboardShimmer";
 
 const Dashboard = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const navigate = useNavigate();
   const { currentUser } = useAuth();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const { meetings, loadUserMeetings, loading, error, removeMeeting } =
     useMeeting();
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,7 +86,7 @@ const Dashboard = () => {
     if (currentUser) {
       stableLoadUserMeetings();
     }
-  }, [currentUser]);
+  }, [currentUser, stableLoadUserMeetings]);
 
   const processedMeetings = useMemo(() => {
     if (!meetings) return [];
@@ -159,31 +156,35 @@ const Dashboard = () => {
     setNotification({ ...notification, open: false });
   };
 
-  if (loading) return (
-    <>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          bgcolor: alpha(theme.palette.background.default, 0.97),
-          backgroundImage: `radial-gradient(${alpha(
-            theme.palette.primary.main,
-            0.05
-          )} 1px, transparent 0)`,
-          backgroundSize: "20px 20px",
-          backgroundPosition: "0 0",
-        }}
-      >
-        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
-          <Box sx={{ mb: 4 }}>
-            <DashboardShimmer type="statcard" count={4} />
-          </Box>
-          <DashboardShimmer type={viewMode === "grid" ? "card" : "list"} count={6} />
-        </Container>
-      </Box>
-    </>
-  )
+  if (loading)
+    return (
+      <>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: "100vh",
+            bgcolor: alpha(theme.palette.background.default, 0.97),
+            backgroundImage: `radial-gradient(${alpha(
+              theme.palette.primary.main,
+              0.05
+            )} 1px, transparent 0)`,
+            backgroundSize: "20px 20px",
+            backgroundPosition: "0 0",
+          }}
+        >
+          <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
+            <Box sx={{ mb: 4 }}>
+              <DashboardShimmer type="statcard" count={4} />
+            </Box>
+            <DashboardShimmer
+              type={viewMode === "grid" ? "card" : "list"}
+              count={6}
+            />
+          </Container>
+        </Box>
+      </>
+    );
 
   return (
     <Box
@@ -202,7 +203,6 @@ const Dashboard = () => {
     >
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
         <DashboardGreeting name={currentUser?.displayName?.split(" ")[0]} />
-
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <StatCard
             icon={<Mic />}
@@ -233,7 +233,6 @@ const Dashboard = () => {
             delay={0.4}
           />
         </Grid>
-
         <Paper
           elevation={0}
           sx={{
@@ -263,7 +262,6 @@ const Dashboard = () => {
                   fontWeight: 600,
                   color: theme.palette.text.primary,
                   mr: 1,
-                  display: { xs: "none", sm: "block" },
                 }}
               >
                 Your Meetings
@@ -280,7 +278,6 @@ const Dashboard = () => {
                 />
               )}
             </Box>
-
             <Box
               sx={{
                 display: "flex",
@@ -342,7 +339,6 @@ const Dashboard = () => {
                 >
                   Sort
                 </Button>
-
                 <ButtonGroup
                   variant="outlined"
                   size="small"
@@ -390,7 +386,6 @@ const Dashboard = () => {
                   </Tooltip>
                 </ButtonGroup>
               </Box>
-
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -419,7 +414,6 @@ const Dashboard = () => {
             </Box>
           </Box>
         </Paper>
-
         <Menu
           id="sort-menu"
           anchorEl={anchorElSort}
@@ -495,7 +489,6 @@ const Dashboard = () => {
             <ListItemText primary="Title" />
           </MenuItem>
         </Menu>
-
         <Box sx={{ minHeight: 400 }}>
           {error ? (
             <Alert
@@ -527,7 +520,10 @@ const Dashboard = () => {
                     justifyContent: "center",
                     minHeight: 300,
                     borderRadius: 4,
-                    border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+                    border: `1px solid ${alpha(
+                      theme.palette.primary.main,
+                      0.1
+                    )}`,
                     bgcolor: alpha(theme.palette.background.paper, 0.7),
                     backdropFilter: "blur(10px)",
                   }}
@@ -554,8 +550,8 @@ const Dashboard = () => {
                       color="text.secondary"
                       sx={{ mb: 3, maxWidth: 400 }}
                     >
-                      Try different search terms or clear your search to see all your
-                      meetings.
+                      Try different search terms or clear your search to see all
+                      your meetings.
                     </Typography>
                     <Button
                       variant="outlined"
@@ -609,9 +605,7 @@ const Dashboard = () => {
             </AnimatePresence>
           )}
         </Box>
-
       </Container>
-
       <Tooltip title="Record New Meeting">
         <Fab
           color="primary"
@@ -627,7 +621,6 @@ const Dashboard = () => {
           <Mic />
         </Fab>
       </Tooltip>
-
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}

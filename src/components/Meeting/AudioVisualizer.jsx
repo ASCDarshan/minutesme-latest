@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
 import { VolumeUp } from "@mui/icons-material";
@@ -172,7 +171,6 @@ const AudioVisualizer = ({ stream, isRecording }) => {
           }}
         />
       )}
-
       <Box
         sx={{
           display: "flex",

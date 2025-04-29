@@ -3,11 +3,9 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Box, Container } from "@mui/material";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MeetingProvider } from "./context/MeetingContext";
-
 import Header from "./components/Layout/Header";
 import Footer from "./components/Layout/Footer";
 import DashboardShimmer from "./components/UI/DashboardShimmer";
-
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import NewMeeting from "./pages/NewMeeting";
@@ -37,66 +35,46 @@ const PrivateRoute = ({ children }) => {
 
 const AppContent = () => {
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh",
-      }}
-    >
+    <Box>
       <Header />
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          pt: 4,
-          pb: 8,
-        }}
-      >
-        <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-
-            <Route
-              path="/"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/new-meeting"
-              element={
-                <PrivateRoute>
-                  <NewMeeting />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/meeting/:id"
-              element={
-                <PrivateRoute>
-                  <MeetingDetails />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/profile"
-              element={
-                <PrivateRoute>
-                  <Profile />
-                </PrivateRoute>
-              }
-            />
-
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Suspense>
-      </Box>
+      <Suspense fallback={<Loading />}>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/"
+            element={
+              <PrivateRoute>
+                <Dashboard />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/new-meeting"
+            element={
+              <PrivateRoute>
+                <NewMeeting />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/meeting/:id"
+            element={
+              <PrivateRoute>
+                <MeetingDetails />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Suspense>
       <Footer />
     </Box>
   );

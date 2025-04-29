@@ -32,7 +32,7 @@ import {
   alpha,
   useTheme,
   Paper,
-  CircularProgress
+  CircularProgress,
 } from "@mui/material";
 import {
   Person,
@@ -55,18 +55,19 @@ import {
   AccessTime,
   CalendarToday,
   Description,
-  Summarize
+  Summarize,
 } from "@mui/icons-material";
 import StatCard from "../components/Profile/StatCard";
+import moment from "moment/moment";
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
-  const { 
-    meetings,            // Array of all user meetings
-    fetchUserMeetings,   // Function to fetch user meetings
-    isLoading            // Loading state
-  } = useMeeting();      // Use the meeting context
-  
+  const {
+    meetings, // Array of all user meetings
+    fetchUserMeetings, // Function to fetch user meetings
+    isLoading, // Loading state
+  } = useMeeting(); // Use the meeting context
+
   const navigate = useNavigate();
   const theme = useTheme();
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
@@ -96,16 +97,16 @@ const Profile = () => {
         totalMinutes: 0,
         averageDuration: 0,
         storageUsed: 0,
-        recentMeetings: []
+        recentMeetings: [],
       };
     }
 
     // Get total number of meetings
     const totalMeetings = meetings.length;
-    
+
     // Calculate total minutes
     let totalMinutes = 0;
-    meetings.forEach(meeting => {
+    meetings.forEach((meeting) => {
       // Use duration property if available, otherwise estimate from content length
       if (meeting.duration) {
         totalMinutes += meeting.duration;
@@ -116,46 +117,51 @@ const Profile = () => {
         totalMinutes += estimatedMinutes;
       }
     });
-    
+
     // Calculate average meeting duration
-    const averageDuration = totalMeetings > 0 ? Math.round(totalMinutes / totalMeetings) : 0;
-    
+    const averageDuration =
+      totalMeetings > 0 ? Math.round(totalMinutes / totalMeetings) : 0;
+
     // Calculate storage used (rough estimate)
     // Assuming 1KB per 500 characters of text, plus metadata
     let storageUsed = 0;
-    meetings.forEach(meeting => {
+    meetings.forEach((meeting) => {
       if (meeting.transcription) {
-        storageUsed += (meeting.transcription.length / 500) + 5; // 5KB base per meeting
+        storageUsed += meeting.transcription.length / 500 + 5; // 5KB base per meeting
       } else {
         storageUsed += 5; // Default 5KB if no transcription
       }
-      
+
       // Add storage for audio if available
       if (meeting.audioUrl) {
         storageUsed += 500; // Rough estimate of 500KB per audio recording
       }
     });
-    
+
     // Convert to MB
     storageUsed = Math.round(storageUsed / 1024);
-    
+
     // Get 5 most recent meetings
     const recentMeetings = [...meetings]
-      .sort((a, b) => (new Date(b.createdAt) - new Date(a.createdAt)))
+      .sort((a, b) => {
+        const timeA = a.createdAt?.seconds || 0;
+        const timeB = b.createdAt?.seconds || 0;
+        return timeB - timeA;
+      })
       .slice(0, 5);
-    
+
     return {
       totalMeetings,
       totalMinutes,
       averageDuration,
       storageUsed,
-      recentMeetings
+      recentMeetings,
     };
   };
 
   // Get meeting statistics
   const stats = calculateMeetingStats();
-  
+
   // Storage limit in MB (can be replaced with a real limit from user subscription)
   const storageLimit = 1000;
   const storagePercentage = (stats.storageUsed / storageLimit) * 100;
@@ -188,12 +194,12 @@ const Profile = () => {
   // Format date for display
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short', 
-      day: 'numeric', 
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -221,7 +227,7 @@ const Profile = () => {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        minHeight: "100vh",
         backgroundColor: theme.palette.background.default,
         pb: 6,
       }}
@@ -229,19 +235,25 @@ const Profile = () => {
       {/* Background gradient */}
       <Box
         sx={{
-          position: 'absolute',
+          position: "absolute",
           top: 0,
           left: 0,
           right: 0,
-          height: '250px',
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.dark, 0.7)} 0%, ${alpha(theme.palette.primary.main, 0.5)} 50%, ${alpha(theme.palette.secondary.light, 0.3)} 100%)`,
+          height: "250px",
+          background: `linear-gradient(135deg, ${alpha(
+            theme.palette.primary.dark,
+            0.7
+          )} 0%, ${alpha(theme.palette.primary.main, 0.5)} 50%, ${alpha(
+            theme.palette.secondary.light,
+            0.3
+          )} 100%)`,
           zIndex: 0,
-          borderRadius: '0 0 30px 30px',
+          borderRadius: "0 0 30px 30px",
           boxShadow: `0 10px 40px ${alpha(theme.palette.primary.main, 0.15)}`,
         }}
       />
 
-      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2, pt: 4 }}>
+      <Container maxWidth="lg" sx={{ position: "relative", zIndex: 2, pt: 4 }}>
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -253,11 +265,11 @@ const Profile = () => {
             startIcon={<ArrowBack />}
             sx={{
               mb: 3,
-              color: 'white',
+              color: "white",
               fontWeight: 500,
-              '&:hover': {
-                backgroundColor: alpha('#fff', 0.1),
-              }
+              "&:hover": {
+                backgroundColor: alpha("#fff", 0.1),
+              },
             }}
           >
             Back to Dashboard
@@ -276,17 +288,20 @@ const Profile = () => {
                 elevation={0}
                 sx={{
                   borderRadius: 3,
-                  overflow: 'hidden',
+                  overflow: "hidden",
                   mb: 3,
                   background: theme.palette.background.paper,
                   border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                  boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                  boxShadow: `0 10px 30px ${alpha(
+                    theme.palette.common.black,
+                    0.07
+                  )}`,
                 }}
               >
                 <Box
                   sx={{
-                    textAlign: 'center',
-                    position: 'relative',
+                    textAlign: "center",
+                    position: "relative",
                     pt: 4,
                     pb: 3,
                   }}
@@ -295,7 +310,7 @@ const Profile = () => {
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{
-                      type: 'spring',
+                      type: "spring",
                       stiffness: 200,
                       damping: 15,
                       delay: 0.2,
@@ -303,7 +318,7 @@ const Profile = () => {
                   >
                     <Badge
                       overlap="circular"
-                      anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                       badgeContent={
                         profileEditMode ? null : (
                           <IconButton
@@ -311,10 +326,10 @@ const Profile = () => {
                             onClick={handleEnterEditMode}
                             sx={{
                               bgcolor: theme.palette.primary.main,
-                              color: '#fff',
+                              color: "#fff",
                               width: 32,
                               height: 32,
-                              '&:hover': {
+                              "&:hover": {
                                 bgcolor: theme.palette.primary.dark,
                               },
                             }}
@@ -326,12 +341,15 @@ const Profile = () => {
                     >
                       <Avatar
                         src={currentUser.photoURL}
-                        alt={currentUser.displayName || 'User'}
+                        alt={currentUser.displayName || "User"}
                         sx={{
                           width: 110,
                           height: 110,
                           border: `4px solid ${theme.palette.background.paper}`,
-                          boxShadow: `0 0 0 4px ${alpha(theme.palette.primary.main, 0.2)}`,
+                          boxShadow: `0 0 0 4px ${alpha(
+                            theme.palette.primary.main,
+                            0.2
+                          )}`,
                         }}
                       >
                         {currentUser.displayName ? (
@@ -360,13 +378,13 @@ const Profile = () => {
                             onChange={(e) => setEditedName(e.target.value)}
                             variant="outlined"
                             size="small"
-                            sx={{ maxWidth: '80%', mb: 2 }}
+                            sx={{ maxWidth: "80%", mb: 2 }}
                           />
 
                           <Box
                             sx={{
-                              display: 'flex',
-                              justifyContent: 'center',
+                              display: "flex",
+                              justifyContent: "center",
                               gap: 2,
                             }}
                           >
@@ -399,10 +417,14 @@ const Profile = () => {
                           transition={{ duration: 0.3 }}
                         >
                           <Typography variant="h5" fontWeight={600}>
-                            {currentUser.displayName || 'User'}
+                            {currentUser.displayName || "User"}
                           </Typography>
 
-                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{ mt: 0.5 }}
+                          >
                             {currentUser.email}
                           </Typography>
 
@@ -428,11 +450,18 @@ const Profile = () => {
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
-                        transition: 'all 0.2s',
-                        '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.05) },
+                        transition: "all 0.2s",
+                        "&:hover": {
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.05
+                          ),
+                        },
                       }}
                       onClick={() => {
-                        alert('This feature will be implemented in a future update');
+                        alert(
+                          "This feature will be implemented in a future update"
+                        );
                       }}
                     >
                       <ListItemIcon sx={{ minWidth: 42 }}>
@@ -441,10 +470,13 @@ const Profile = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 1.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.08
+                            ),
                             color: theme.palette.primary.main,
                           }}
                         >
@@ -463,8 +495,13 @@ const Profile = () => {
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
-                        transition: 'all 0.2s',
-                        '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.05) },
+                        transition: "all 0.2s",
+                        "&:hover": {
+                          backgroundColor: alpha(
+                            theme.palette.primary.main,
+                            0.05
+                          ),
+                        },
                       }}
                       onClick={() => setLogoutDialogOpen(true)}
                     >
@@ -474,10 +511,13 @@ const Profile = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 1.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: alpha(theme.palette.info.main, 0.08),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: alpha(
+                              theme.palette.info.main,
+                              0.08
+                            ),
                             color: theme.palette.info.main,
                           }}
                         >
@@ -496,8 +536,13 @@ const Profile = () => {
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
-                        transition: 'all 0.2s',
-                        '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.05) },
+                        transition: "all 0.2s",
+                        "&:hover": {
+                          backgroundColor: alpha(
+                            theme.palette.error.main,
+                            0.05
+                          ),
+                        },
                       }}
                       onClick={() => setDeleteAccountDialogOpen(true)}
                     >
@@ -507,10 +552,13 @@ const Profile = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 1.5,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: alpha(theme.palette.error.main, 0.08),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            backgroundColor: alpha(
+                              theme.palette.error.main,
+                              0.08
+                            ),
                             color: theme.palette.error.main,
                           }}
                         >
@@ -520,7 +568,10 @@ const Profile = () => {
                       <ListItemText
                         primary="Delete Account"
                         secondary="Permanently remove your account and data"
-                        primaryTypographyProps={{ fontWeight: 500, color: 'error.main' }}
+                        primaryTypographyProps={{
+                          fontWeight: 500,
+                          color: "error.main",
+                        }}
                       />
                     </ListItem>
                   </List>
@@ -533,12 +584,14 @@ const Profile = () => {
           <Grid item xs={12} md={8}>
             {/* Loading indicator while fetching data */}
             {isLoading ? (
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '200px' 
-              }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  height: "200px",
+                }}
+              >
                 <CircularProgress />
                 <Typography sx={{ ml: 2 }}>Loading your data...</Typography>
               </Box>
@@ -553,11 +606,14 @@ const Profile = () => {
                     elevation={0}
                     sx={{
                       borderRadius: 3,
-                      overflow: 'hidden',
+                      overflow: "hidden",
                       mb: 3,
                       background: theme.palette.background.paper,
                       border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                      boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                      boxShadow: `0 10px 30px ${alpha(
+                        theme.palette.common.black,
+                        0.07
+                      )}`,
                     }}
                   >
                     <CardContent>
@@ -607,15 +663,25 @@ const Profile = () => {
                     elevation={0}
                     sx={{
                       borderRadius: 3,
-                      overflow: 'hidden',
+                      overflow: "hidden",
                       mb: 3,
                       background: theme.palette.background.paper,
                       border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                      boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                      boxShadow: `0 10px 30px ${alpha(
+                        theme.palette.common.black,
+                        0.07
+                      )}`,
                     }}
                   >
                     <CardContent>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          mb: 3,
+                        }}
+                      >
                         <Typography variant="h6" fontWeight={600}>
                           Storage Usage
                         </Typography>
@@ -625,12 +691,14 @@ const Profile = () => {
                             py: 0.5,
                             px: 1.5,
                             borderRadius: 5,
-                            backgroundColor: storagePercentage >= 80
-                              ? alpha(theme.palette.warning.main, 0.1)
-                              : alpha(theme.palette.success.main, 0.1),
-                            color: storagePercentage >= 80
-                              ? theme.palette.warning.main
-                              : theme.palette.success.main,
+                            backgroundColor:
+                              storagePercentage >= 80
+                                ? alpha(theme.palette.warning.main, 0.1)
+                                : alpha(theme.palette.success.main, 0.1),
+                            color:
+                              storagePercentage >= 80
+                                ? theme.palette.warning.main
+                                : theme.palette.success.main,
                             fontWeight: 600,
                           }}
                         >
@@ -639,7 +707,13 @@ const Profile = () => {
                       </Box>
 
                       <Box sx={{ mb: 2 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            mb: 1,
+                          }}
+                        >
                           <Typography variant="body2" color="text.secondary">
                             {stats.storageUsed} MB Used
                           </Typography>
@@ -653,12 +727,16 @@ const Profile = () => {
                           sx={{
                             height: 8,
                             borderRadius: 4,
-                            backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                            '& .MuiLinearProgress-bar': {
+                            backgroundColor: alpha(
+                              theme.palette.primary.main,
+                              0.08
+                            ),
+                            "& .MuiLinearProgress-bar": {
                               borderRadius: 4,
-                              background: storagePercentage >= 80
-                                ? `linear-gradient(90deg, ${theme.palette.warning.main}, ${theme.palette.warning.light})`
-                                : `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                              background:
+                                storagePercentage >= 80
+                                  ? `linear-gradient(90deg, ${theme.palette.warning.main}, ${theme.palette.warning.light})`
+                                  : `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
                             },
                           }}
                         />
@@ -669,28 +747,39 @@ const Profile = () => {
                           sx={{
                             p: 2,
                             borderRadius: 2,
-                            backgroundColor: alpha(theme.palette.warning.main, 0.05),
-                            border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
-                            display: 'flex',
-                            alignItems: 'center',
+                            backgroundColor: alpha(
+                              theme.palette.warning.main,
+                              0.05
+                            ),
+                            border: `1px solid ${alpha(
+                              theme.palette.warning.main,
+                              0.2
+                            )}`,
+                            display: "flex",
+                            alignItems: "center",
                           }}
                         >
                           <Typography variant="body2" color="text.secondary">
-                            <strong style={{ color: theme.palette.warning.main }}>Running low on storage.</strong>
-                            {' '}Consider upgrading your account for more space.
+                            <strong
+                              style={{ color: theme.palette.warning.main }}
+                            >
+                              Running low on storage.
+                            </strong>{" "}
+                            Consider upgrading your account for more space.
                           </Typography>
                           <Button
                             variant="outlined"
                             size="small"
                             color="warning"
-                            sx={{ ml: 'auto', borderRadius: 2 }}
+                            sx={{ ml: "auto", borderRadius: 2 }}
                           >
                             Upgrade
                           </Button>
                         </Box>
                       ) : (
                         <Typography variant="body2" color="text.secondary">
-                          Your storage includes recordings, transcriptions, and meeting minutes.
+                          Your storage includes recordings, transcriptions, and
+                          meeting minutes.
                         </Typography>
                       )}
                     </CardContent>
@@ -706,10 +795,13 @@ const Profile = () => {
                     elevation={0}
                     sx={{
                       borderRadius: 3,
-                      overflow: 'hidden',
+                      overflow: "hidden",
                       background: theme.palette.background.paper,
                       border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                      boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                      boxShadow: `0 10px 30px ${alpha(
+                        theme.palette.common.black,
+                        0.07
+                      )}`,
                     }}
                   >
                     <CardContent>
@@ -717,49 +809,99 @@ const Profile = () => {
                         Recent Meetings
                       </Typography>
 
-                      {stats.recentMeetings && stats.recentMeetings.length > 0 ? (
+                      {stats.recentMeetings &&
+                      stats.recentMeetings.length > 0 ? (
                         <List sx={{ px: 0 }}>
                           {stats.recentMeetings.map((meeting, index) => (
                             <React.Fragment key={meeting.id || index}>
-                              <ListItem 
-                                sx={{ 
-                                  px: 2, 
+                              <ListItem
+                                sx={{
+                                  px: 2,
                                   py: 1.5,
                                   borderRadius: 2,
-                                  '&:hover': { 
-                                    bgcolor: alpha(theme.palette.primary.main, 0.05) 
+                                  "&:hover": {
+                                    bgcolor: alpha(
+                                      theme.palette.primary.main,
+                                      0.05
+                                    ),
                                   },
-                                  cursor: 'pointer'
+                                  cursor: "pointer",
                                 }}
-                                onClick={() => navigate(`/meeting/${meeting.id}`)}
+                                onClick={() =>
+                                  navigate(`/meeting/${meeting.id}`)
+                                }
                               >
                                 <ListItemIcon>
-                                  <Avatar 
-                                    sx={{ 
-                                      bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                      color: theme.palette.primary.main
+                                  <Avatar
+                                    sx={{
+                                      bgcolor: alpha(
+                                        theme.palette.primary.main,
+                                        0.1
+                                      ),
+                                      color: theme.palette.primary.main,
                                     }}
                                   >
                                     <Description />
                                   </Avatar>
                                 </ListItemIcon>
-                                <ListItemText 
+                                <ListItemText
                                   primary={
-                                    <Typography variant="subtitle2" fontWeight={600}>
+                                    <Typography
+                                      variant="subtitle2"
+                                      fontWeight={600}
+                                    >
                                       {meeting.title || "Untitled Meeting"}
                                     </Typography>
                                   }
                                   secondary={
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                                      <CalendarToday fontSize="small" sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                                      <Typography variant="body2" color="text.secondary">
-                                        {meeting.createdAt ? formatDate(meeting.createdAt) : "No date"}
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        mt: 0.5,
+                                      }}
+                                    >
+                                      <CalendarToday
+                                        fontSize="small"
+                                        sx={{
+                                          fontSize: 14,
+                                          mr: 0.5,
+                                          color: "text.secondary",
+                                        }}
+                                      />
+                                      <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                      >
+                                        Created:{" "}
+                                        {meeting.createdAt &&
+                                        typeof meeting.createdAt.seconds ===
+                                          "number"
+                                          ? moment(
+                                              meeting.createdAt.seconds * 1000
+                                            ).format("MMM D, YYYY, hh:mm A")
+                                          : "No date"}
                                       </Typography>
-                                      
                                       {meeting.duration && (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-                                          <AccessTime fontSize="small" sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                                          <Typography variant="body2" color="text.secondary">
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            alignItems: "center",
+                                            ml: 2,
+                                          }}
+                                        >
+                                          <AccessTime
+                                            fontSize="small"
+                                            sx={{
+                                              fontSize: 14,
+                                              mr: 0.5,
+                                              color: "text.secondary",
+                                            }}
+                                          />
+                                          <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                          >
                                             {meeting.duration} min
                                           </Typography>
                                         </Box>
@@ -778,7 +920,7 @@ const Profile = () => {
                           ))}
                         </List>
                       ) : (
-                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                        <Box sx={{ textAlign: "center", py: 4 }}>
                           <Typography variant="body1" color="text.secondary">
                             You haven't recorded any meetings yet.
                           </Typography>
@@ -809,8 +951,8 @@ const Profile = () => {
           sx: {
             borderRadius: 3,
             p: 1,
-            maxWidth: '400px',
-            width: '100%',
+            maxWidth: "400px",
+            width: "100%",
           },
         }}
       >
@@ -845,8 +987,8 @@ const Profile = () => {
           sx: {
             borderRadius: 3,
             p: 1,
-            maxWidth: '400px',
-            width: '100%',
+            maxWidth: "400px",
+            width: "100%",
           },
         }}
       >
