@@ -1014,19 +1014,7 @@ const MeetingRecorder = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Button
-                component={RouterLink}
-                to="/"
-                size={isMobile ? "small" : "medium"}
-                startIcon={<ArrowBack />}
-                sx={{
-                  mr: { xs: 1, sm: 2 },
-                  color: "text.primary",
-                  borderRadius: 8,
-                }}
-              >
-                Back
-              </Button>
+
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <WaveLogoIcon
                   color="primary"
@@ -1912,16 +1900,9 @@ const MeetingRecorder = () => {
                             },
                           }}
                         />
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
-                        >
-                          {" "}
-                          A clear title helps find this meeting later.{" "}
-                        </Typography>
+
                       </Box>
-                      <Box sx={{ display: "flex", gap: 2 }}>
+                      <Box sx={{ display: "flex", gap: 1.5 }}>
                         <Button
                           onClick={handleRecordAgain}
                           color="inherit"
@@ -1929,15 +1910,17 @@ const MeetingRecorder = () => {
                           startIcon={<RestoreIcon />}
                           disabled={isProcessingAny}
                           sx={{
-                            borderRadius: 28,
+                            borderRadius: 20,
                             flex: 1,
-                            py: 1.5,
+                            py: 0.5,
+                            px: 1.5,
+                            fontSize: "0.875rem",
                             textTransform: "none",
                             fontWeight: 500,
+                            minWidth: 0,
                           }}
                         >
-                          {" "}
-                          Record Again{" "}
+                          Record Again
                         </Button>
                         <Button
                           onClick={handleGenerateAndSave}
@@ -1945,27 +1928,27 @@ const MeetingRecorder = () => {
                           variant="contained"
                           startIcon={
                             isProcessingAny ? (
-                              <CircularProgress size={20} color="inherit" />
+                              <CircularProgress size={16} color="inherit" />
                             ) : (
                               <DoneIcon />
                             )
                           }
-                          disabled={isProcessingAny || !meetingTitle.trim()}
                           sx={{
-                            borderRadius: 28,
-                            flex: 2,
-                            py: 1.5,
-                            boxShadow: theme.shadows[4],
+                            borderRadius: 20,
+                            flex: 1.2,
+                            py: 0.75,
+                            px: 2,
+                            fontSize: "0.875rem",
                             textTransform: "none",
                             fontWeight: 600,
+                            boxShadow: theme.shadows[2],
+                            minWidth: 0,
                           }}
                         >
-                          {" "}
-                          {isProcessingAny
-                            ? "Processing..."
-                            : "Generate Minutes"}{" "}
+                          {isProcessingAny ? "Processing..." : "Generate Minutes"}
                         </Button>
                       </Box>
+
                     </Box>
                     {processingError && (
                       <Alert severity="error" sx={{ mt: 3, borderRadius: 2 }}>
