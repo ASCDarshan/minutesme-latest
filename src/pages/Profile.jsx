@@ -1,8 +1,7 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useEffect } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { useMeeting } from "../context/MeetingContext"; // Import the meeting context
+import { useMeeting } from "../context/MeetingContext";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
@@ -26,47 +25,35 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Tooltip,
   Badge,
   Chip,
   alpha,
   useTheme,
-  Paper,
   CircularProgress,
 } from "@mui/material";
 import {
   Person,
   ArrowBack,
   Logout as LogoutIcon,
-  Storage as StorageIcon,
   CloudDownload,
   DeleteForever,
   Edit,
   VerifiedUser,
   CheckCircle,
   Close,
-  MusicNote,
   MicNone,
-  Timer,
   MoreVert,
-  Schedule,
   Event,
-  BarChart,
   AccessTime,
   CalendarToday,
   Description,
-  Summarize,
 } from "@mui/icons-material";
 import StatCard from "../components/Profile/StatCard";
 import moment from "moment/moment";
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
-  const {
-    meetings, // Array of all user meetings
-    fetchUserMeetings, // Function to fetch user meetings
-    isLoading, // Loading state
-  } = useMeeting(); // Use the meeting context
+  const { meetings, fetchUserMeetings, isLoading } = useMeeting();
 
   const navigate = useNavigate();
   const theme = useTheme();
@@ -75,7 +62,6 @@ const Profile = () => {
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [editedName, setEditedName] = useState("");
 
-  // Load meetings when component mounts
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -88,9 +74,7 @@ const Profile = () => {
     fetchData();
   }, [fetchUserMeetings]);
 
-  // Calculate real meeting statistics
   const calculateMeetingStats = () => {
-    // If not loaded yet, return empty stats
     if (!meetings) {
       return {
         totalMeetings: 0,
@@ -101,24 +85,19 @@ const Profile = () => {
       };
     }
 
-    // Get total number of meetings
     const totalMeetings = meetings.length;
 
-    // Calculate total minutes
     let totalMinutes = 0;
     meetings.forEach((meeting) => {
-      // Use duration property if available, otherwise estimate from content length
       if (meeting.duration) {
         totalMinutes += meeting.duration;
       } else if (meeting.transcription) {
-        // Rough estimate: 150 words per minute, average 5 chars per word
         const wordCount = meeting.transcription.length / 5;
         const estimatedMinutes = Math.round(wordCount / 150);
         totalMinutes += estimatedMinutes;
       }
     });
 
-    // Calculate average meeting duration
     const averageDuration =
       totalMeetings > 0 ? Math.round(totalMinutes / totalMeetings) : 0;
 
@@ -141,7 +120,6 @@ const Profile = () => {
     // Convert to MB
     storageUsed = Math.round(storageUsed / 1024);
 
-    // Get 5 most recent meetings
     const recentMeetings = [...meetings]
       .sort((a, b) => {
         const timeA = a.createdAt?.seconds || 0;
@@ -159,10 +137,8 @@ const Profile = () => {
     };
   };
 
-  // Get meeting statistics
   const stats = calculateMeetingStats();
 
-  // Storage limit in MB (can be replaced with a real limit from user subscription)
   const storageLimit = 1000;
   const storagePercentage = (stats.storageUsed / storageLimit) * 100;
 
@@ -189,18 +165,6 @@ const Profile = () => {
 
   const handleCancelEdit = () => {
     setProfileEditMode(false);
-  };
-
-  // Format date for display
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   if (!currentUser) {
@@ -232,7 +196,6 @@ const Profile = () => {
         pb: 6,
       }}
     >
-      {/* Background gradient */}
       <Box
         sx={{
           position: "absolute",
@@ -277,7 +240,6 @@ const Profile = () => {
         </motion.div>
 
         <Grid container spacing={4}>
-          {/* Profile section */}
           <Grid item xs={12} md={4}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -360,7 +322,6 @@ const Profile = () => {
                       </Avatar>
                     </Badge>
                   </motion.div>
-
                   <Box sx={{ mt: 2 }}>
                     <AnimatePresence mode="wait">
                       {profileEditMode ? (
@@ -380,7 +341,6 @@ const Profile = () => {
                             size="small"
                             sx={{ maxWidth: "80%", mb: 2 }}
                           />
-
                           <Box
                             sx={{
                               display: "flex",
@@ -419,7 +379,6 @@ const Profile = () => {
                           <Typography variant="h5" fontWeight={600}>
                             {currentUser.displayName || "User"}
                           </Typography>
-
                           <Typography
                             variant="body2"
                             color="text.secondary"
@@ -427,7 +386,6 @@ const Profile = () => {
                           >
                             {currentUser.email}
                           </Typography>
-
                           <Chip
                             icon={<VerifiedUser fontSize="small" />}
                             label="Verified Account"
@@ -440,9 +398,7 @@ const Profile = () => {
                     </AnimatePresence>
                   </Box>
                 </Box>
-
                 <Divider />
-
                 <CardContent sx={{ px: 2, py: 0 }}>
                   <List disablePadding>
                     <ListItem
@@ -489,7 +445,6 @@ const Profile = () => {
                         primaryTypographyProps={{ fontWeight: 500 }}
                       />
                     </ListItem>
-
                     <ListItem
                       button
                       sx={{
@@ -530,7 +485,6 @@ const Profile = () => {
                         primaryTypographyProps={{ fontWeight: 500 }}
                       />
                     </ListItem>
-
                     <ListItem
                       button
                       sx={{
@@ -579,10 +533,7 @@ const Profile = () => {
               </Card>
             </motion.div>
           </Grid>
-
-          {/* Right column with statistics */}
           <Grid item xs={12} md={8}>
-            {/* Loading indicator while fetching data */}
             {isLoading ? (
               <Box
                 sx={{
@@ -620,7 +571,6 @@ const Profile = () => {
                       <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
                         Account Overview
                       </Typography>
-
                       <Grid container spacing={3}>
                         <Grid item xs={12} md={4}>
                           <StatCard
@@ -653,7 +603,6 @@ const Profile = () => {
                     </CardContent>
                   </Card>
                 </motion.div>
-
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -705,7 +654,6 @@ const Profile = () => {
                           {storagePercentage.toFixed(0)}% Used
                         </Typography>
                       </Box>
-
                       <Box sx={{ mb: 2 }}>
                         <Box
                           sx={{
@@ -741,7 +689,6 @@ const Profile = () => {
                           }}
                         />
                       </Box>
-
                       {storagePercentage >= 80 ? (
                         <Box
                           sx={{
@@ -785,7 +732,6 @@ const Profile = () => {
                     </CardContent>
                   </Card>
                 </motion.div>
-
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -942,8 +888,6 @@ const Profile = () => {
           </Grid>
         </Grid>
       </Container>
-
-      {/* Dialogs */}
       <Dialog
         open={logoutDialogOpen}
         onClose={() => setLogoutDialogOpen(false)}
@@ -979,7 +923,6 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
-
       <Dialog
         open={deleteAccountDialogOpen}
         onClose={() => setDeleteAccountDialogOpen(false)}

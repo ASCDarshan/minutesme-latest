@@ -81,8 +81,8 @@ const Footer = () => {
   const contactInfo = [
     {
       icon: <MailOutline fontSize="small" />,
-      text: "info@minuteme.com",
-      href: "mailto:info@minuteme.com",
+      text: "info@makemyminutes.com",
+      href: "mailto:info@makemyminutes.com",
     },
     {
       icon: <Phone fontSize="small" />,
@@ -118,7 +118,7 @@ const Footer = () => {
                 variant="body2"
                 sx={{ maxWidth: 320, textAlign: { xs: "center", md: "left" } }}
               >
-                MinuteMe: Effortless meeting summaries powered by AI. Focus on
+                MakeMyMinutes: Effortless meeting summaries powered by AI. Focus on
                 the conversation, let us handle the notes.
               </Typography>
               <Stack direction="row" spacing={1.5}>
@@ -198,7 +198,7 @@ const Footer = () => {
           }}
         >
           <Typography variant="body2" sx={{ textAlign: "center" }}>
-            © {currentYear} MinuteMe. All rights reserved.
+            © {currentYear} MakeMyMinutes. All rights reserved.
           </Typography>
           <Stack
             direction={{ xs: "column", sm: "row" }}
