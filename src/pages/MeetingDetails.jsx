@@ -24,6 +24,7 @@ import {
   alpha,
   useTheme,
   useMediaQuery,
+  Snackbar,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -95,6 +96,8 @@ const MeetingDetails = () => {
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   const loadMeeting = useCallback(contextLoadMeeting, [contextLoadMeeting]);
 
@@ -132,17 +135,91 @@ const MeetingDetails = () => {
     setActionsMenuAnchor(event.currentTarget);
   const handleCloseActionsMenu = () => setActionsMenuAnchor(null);
 
+  const handleShareEmail = () => {
+    handleCloseShareMenu();
+    const subject = `Meeting Minutes: ${currentMeeting.title || "Untitled Meeting"}`;
+    const body = generatePlainTextSummary();
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, "_blank");
+  };
+
+  const generatePlainTextSummary = () => {
+    let summary = "";
+    summary += `Meeting Title: ${minutesData?.title || "Untitled"}\n`;
+    summary += `Date: ${formattedDate} ${formattedTime}\n`;
+    if (minutesData?.participants && minutesData.participants.length > 0) {
+      summary += `Participants: ${minutesData.participants.join(", ")}\n`;
+    }
+    if (minutesData?.agenda && minutesData.agenda.length > 0) {
+      summary += "\nAgenda:\n";
+      minutesData.agenda.forEach((item) => {
+        summary += `- ${item}\n`;
+      });
+    }
+    if (minutesData?.keyPoints && Object.keys(minutesData.keyPoints).length > 0) {
+      summary += "\nKey Discussion Points:\n";
+      Object.entries(minutesData.keyPoints).forEach(([key, value]) => {
+        summary += `- ${value}\n`;
+      });
+    }
+    if (minutesData?.decisions && minutesData.decisions.length > 0) {
+      summary += "\nDecisions Made:\n";
+      minutesData.decisions.forEach((decision) => {
+        summary += `- ${decision}\n`;
+      });
+    }
+    if (actionItems.length > 0) {
+      summary += "\nAction Items:\n";
+      actionItems.forEach((item) => {
+        summary += `- ${item.content}`;
+        if (item.assignee) summary += ` (Assigned: ${item.assignee})`;
+        if (item.dueDate) summary += ` (Due: ${item.dueDate})`;
+        summary += ` - Status: ${item.complete ? "Completed" : "Pending"}\n`;
+      });
+    }
+    if (minutesData?.nextSteps) {
+      summary += "\nNext Steps:\n";
+      summary += `${minutesData.nextSteps}\n`;
+    }
+    if (minutesData?.transcription) {
+      summary += "\nTranscript:\n";
+      summary += `${minutesData.transcription}\n`;
+    }
+    return summary;
+  };
+
+  const handleCopyLink = () => {
+    handleCloseShareMenu();
+    const plainTextSummary = generatePlainTextSummary();
+    navigator.clipboard.writeText(plainTextSummary).then(() => {
+      setSnackbarMessage("Meeting summary copied to clipboard!");
+      setSnackbarOpen(true);
+    });
+  };
+
+  const handlePublishToWeb = () => {
+    handleCloseShareMenu();
+    const plainTextSummary = generatePlainTextSummary();
+    // In a real application, this would involve sending the data to a server
+    // to be hosted on a public URL. You would likely send the plainTextSummary.
+    console.log("Publishing to web (plain text):\n", plainTextSummary);
+    setSnackbarMessage("Publish to web functionality (simulated with plain text)");
+    setSnackbarOpen(true);
+  };
+
   const shareOptions = [
-    { icon: <Email fontSize="small" />, label: "Email", onClick: () => {} },
+    { icon: <Email fontSize="small" />, label: "Email", onClick: handleShareEmail },
     {
       icon: <ContentCopy fontSize="small" />,
-      label: "Copy Link",
-      onClick: () => {},
+      label: "Copy as Text",
+      onClick: handleCopyLink,
     },
     {
       icon: <Public fontSize="small" />,
       label: "Publish to Web",
-      onClick: () => {},
+      onClick: handlePublishToWeb,
     },
   ];
 
@@ -197,7 +274,7 @@ const MeetingDetails = () => {
   const hasMinutesError = !!minutesData?.error;
 
   const formattedDate = currentMeeting.createdAt?.toDate()
-    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D, YYYY")
+    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D,YYYY")
     : "Date unavailable";
   const formattedTime = currentMeeting.createdAt?.toDate()
     ? moment(currentMeeting.createdAt.toDate()).format("h:mm A")
@@ -209,9 +286,9 @@ const MeetingDetails = () => {
       const contentMatch =
         typeof item === "string"
           ? item
-              .replace(/-\s*\[.*?\]\s*/g, "")
-              .replace(/\[Due:.*?\]/g, "")
-              .trim()
+            .replace(/-\s*\[.*?\]\s*/g, "")
+            .replace(/\[Due:.*?\]/g, "")
+            .trim()
           : "Invalid action item format";
       const assigneeMatch =
         typeof item === "string" ? item.match(/\[(.*?)\]/)?.[1] : null;
@@ -762,14 +839,7 @@ const MeetingDetails = () => {
                   <Typography variant="h5" fontWeight={600}>
                     Full Transcript
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<DownloadIcon />}
-                    sx={{ borderRadius: 2 }}
-                  >
-                    Download
-                  </Button>
+
                 </Box>
                 {minutesData?.transcription ? (
                   <Box
@@ -910,6 +980,12 @@ const MeetingDetails = () => {
           Delete Meeting
         </MenuItem>
       </Menu>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        message={snackbarMessage}
+      />
     </Box>
   );
 };
