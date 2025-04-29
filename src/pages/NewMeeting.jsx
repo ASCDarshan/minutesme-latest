@@ -24,11 +24,7 @@ import {
   Snackbar,
   useMediaQuery,
 } from "@mui/material";
-import {
-  ArrowBack,
-  Mic as MicIcon,
-  Notes,
-} from "@mui/icons-material";
+import { ArrowBack, Mic as MicIcon, Notes } from "@mui/icons-material";
 
 import NewMeetingMobile from "./NewMeeting/NewMeetingMobile";
 import NewMeetingDesktop from "./NewMeeting/NewMeetingDesktop";
@@ -157,7 +153,6 @@ const NewMeeting = () => {
 
   // Auto-transition to Step 1 logic - Needs adjustment
   useEffect(() => {
-
     if (
       mediaRecorderStatus === "stopped" &&
       activeStep === 0 && // Only transition from step 0
@@ -362,8 +357,8 @@ const NewMeeting = () => {
   const processingError = useMemo(
     () =>
       contextError &&
-        !contextError.startsWith("Transcription failed") &&
-        !contextError.startsWith("Recording Error")
+      !contextError.startsWith("Transcription failed") &&
+      !contextError.startsWith("Recording Error")
         ? contextError
         : null,
     [contextError]

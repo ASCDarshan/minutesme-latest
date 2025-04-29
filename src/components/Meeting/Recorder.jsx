@@ -1,4 +1,3 @@
-// In Recorder.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useMeeting } from "../../context/MeetingContext";
 import { Box, Typography, IconButton } from "@mui/material";
@@ -6,7 +5,6 @@ import { MicIcon, StopIcon } from "@mui/icons-material";
 import AudioVisualizer from "./AudioVisualizer";
 
 const Recorder = () => {
-  // Get these values and functions from useMeeting
   const {
     isRecording,
     startMeeting,
@@ -52,11 +50,9 @@ const Recorder = () => {
   return (
     <Box>
       <AudioVisualizer stream={previewStream} isRecording={isRecording} />
-
       <Typography variant="h3" align="center">
         {formatTime(recordingTime)}
       </Typography>
-
       <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
         {!isRecording ? (
           <IconButton
@@ -93,7 +89,6 @@ const Recorder = () => {
           </IconButton>
         )}
       </Box>
-
       <Typography
         variant="caption"
         align="center"

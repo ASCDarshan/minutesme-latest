@@ -1,5 +1,4 @@
-/* eslint-disable no-unused-vars */
-import { createTheme, alpha } from "@mui/material/styles";
+import { createTheme } from "@mui/material/styles";
 
 const lavender = {
   50: "#f3f1fa",
