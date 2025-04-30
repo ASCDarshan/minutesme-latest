@@ -1,6 +1,7 @@
 import React from "react";
-import { Box, Typography, useTheme } from "@mui/material";
-
+import { Box, Typography, useTheme, IconButton } from "@mui/material";
+import { motion } from "framer-motion";
+import { RecordVoiceOver } from "@mui/icons-material";
 const sizes = {
   small: {
     width: 32,
@@ -30,89 +31,86 @@ const Logo = ({ size = "medium", withText = true, textColor }) => {
   const logoTextColor = textColor || theme.palette.primary.main;
   const secondaryTextColor = theme.palette.secondary.main;
 
+  const logoContainerSize = 60;
+  const iconButtonSize = 30;
+  const circleBaseSize = 30;
+
   return (
     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 64 64"
-        width={dimensions.width}
-        height={dimensions.height}
-        fill="none"
-        aria-hidden="true"
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.8 }}
+        style={{
+          display: "flex",
+          justifyContent: "flex-start",
+        }}
       >
-        <defs>
-          <linearGradient
-            id="logoGradientPrimary"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
+        <Box
+          sx={{
+            position: "relative",
+            width: logoContainerSize,
+            height: logoContainerSize,
+            opacity: 0.9,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {[...Array(3)].map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0.7, scale: 1 }}
+              animate={{ opacity: 0, scale: 1.5 + i * 0.4 }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                delay: i * 0.5,
+                ease: "easeOut",
+              }}
+              style={{
+                position: "absolute",
+                width: circleBaseSize,
+                height: circleBaseSize,
+                borderRadius: "50%",
+                border: `1.5px solid ${theme.palette.primary.main}`,
+              }}
+            />
+          ))}
+
+          <motion.div
+            animate={{
+              scale: [1, 1.08, 1],
+            }}
+            transition={{
+              duration: 1.8,
+              repeat: Infinity,
+              repeatType: "reverse",
+              ease: "easeInOut",
+            }}
+            style={{
+              position: "absolute",
+            }}
           >
-            <stop offset="0%" stopColor="#b39ddb" />
-            <stop offset="100%" stopColor="#673ab7" />
-          </linearGradient>
-          <linearGradient
-            id="logoGradientLight"
-            x1="0%"
-            y1="0%"
-            x2="100%"
-            y2="100%"
-          >
-            <stop offset="0%" stopColor="#d1c4e9" />
-            <stop offset="100%" stopColor="#9575cd" />
-          </linearGradient>
-        </defs>
-        <path
-          stroke="#9575cd"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.5"
-          d="M18 8h28a2 2 0 0 1 2 2v44a2 2 0 0 1-2 2H18a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z"
-        />
-        <path
-          fill="#ede7f6"
-          stroke="#9575cd"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.5"
-          d="M16 10v-0.5A1.5 1.5 0 0 1 17.5 8h29A1.5 1.5 0 0 1 48 9.5V10c0 2.21-1.79 4-4 4H20c-2.21 0-4-1.79-4-4z"
-        />
-        <circle
-          cx="32"
-          cy="34"
-          r="10"
-          stroke="url(#logoGradientPrimary)"
-          strokeWidth="2.5"
-        />
-        <path
-          stroke="#673ab7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.5"
-          d="M32 34V27"
-        />
-        <path
-          stroke="#673ab7"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2.5"
-          d="M32 34l5 3.5"
-        />
-        <path
-          stroke="#d1c4e9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M22 49h20"
-        />
-        <path
-          stroke="#d1c4e9"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M22 54h16"
-        />
-      </svg>
+            <IconButton
+              size="small"
+              sx={{
+                width: iconButtonSize,
+                height: iconButtonSize,
+                backgroundColor: theme.palette.primary.main,
+                color: "white",
+                "&:hover": {
+                  backgroundColor: theme.palette.primary.dark,
+                },
+                boxShadow: theme.shadows[2],
+              }}
+            >
+              <RecordVoiceOver sx={{ fontSize: iconButtonSize * 0.6 }} />
+            </IconButton>
+          </motion.div>
+        </Box>
+      </motion.div>
+
       {withText && (
         <Typography
           variant="h6"
