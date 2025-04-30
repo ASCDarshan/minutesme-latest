@@ -232,22 +232,6 @@ const Login = () => {
         maxWidth="lg"
         sx={{ height: "100%", py: 4, zIndex: 1, position: "relative" }}
       >
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              mb: { xs: 3, md: 5 },
-            }}
-          >
-            <Logo size="large" />
-          </Box>
-        </motion.div>
-
         <Box
           sx={{
             display: "flex",
@@ -372,11 +356,11 @@ const Login = () => {
                         fontSize: "1.1rem",
                         textTransform: "none",
                         fontWeight: 500,
-                        boxShadow: "0 8px 20px rgba(0, 0, 0, 0.1)",
+                        boxShadow: "0 12px 24px rgba(0, 0, 0, 0.15)",
                         background: "white",
                         color: "text.primary",
                         border: "2px solid",
-                        borderColor: "grey.200",
+                        borderColor: theme.palette.primary.main,
                         position: "relative",
                         overflow: "hidden",
                         transition: "all 0.3s ease",
@@ -409,7 +393,7 @@ const Login = () => {
                           <Dot delay={0.2} />
                         </Box>
                       ) : (
-                        "Continue with Google"
+                        "Login with Google"
                       )}
                     </Button>
 
@@ -497,83 +481,6 @@ const Login = () => {
               )}
             </AnimatePresence>
           </Box>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1, duration: 0.8 }}
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              paddingRight: "3rem",
-            }}
-          >
-            <Box
-              sx={{
-                position: "relative",
-                width: 120,
-                height: 120,
-                mt: 4,
-                opacity: 0.7,
-              }}
-            >
-              {[...Array(3)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0.7, scale: 1 }}
-                  animate={{ opacity: 0, scale: 2 + i * 0.5 }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    delay: i * 0.6,
-                    ease: "easeOut",
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    width: 60,
-                    height: 60,
-                    borderRadius: "50%",
-                    border: `2px solid ${theme.palette.primary.main}`,
-                  }}
-                />
-              ))}
-
-              <motion.div
-                animate={{
-                  scale: [1, 1.1, 1],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  ease: "easeInOut",
-                }}
-                style={{
-                  position: "absolute",
-                  top: "50%",
-                  left: "50%",
-                  transform: "translate(-50%, -50%)",
-                }}
-              >
-                <IconButton
-                  sx={{
-                    width: 60,
-                    height: 60,
-                    backgroundColor: theme.palette.primary.main,
-                    color: "white",
-                    "&:hover": {
-                      backgroundColor: theme.palette.primary.dark,
-                    },
-                  }}
-                >
-                  <RecordVoiceOver fontSize="large" />
-                </IconButton>
-              </motion.div>
-            </Box>
-          </motion.div>
         </Box>
       </Container>
     </Box>

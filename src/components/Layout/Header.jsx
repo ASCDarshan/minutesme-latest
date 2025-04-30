@@ -12,10 +12,6 @@ import {
   Menu,
   MenuItem,
   Avatar,
-  Drawer,
-  List,
-  ListItem,
-  ListItemText,
   ListItemIcon,
   Divider,
   Container,
@@ -33,6 +29,10 @@ import {
   Dashboard,
   MicNone,
   Person,
+  Mic,
+  VolumeUp,
+  NoteAlt,
+  Storage,
 } from "@mui/icons-material";
 import Logo from "../UI/Logo";
 
@@ -78,7 +78,6 @@ const Header = () => {
 
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
-  const [notificationsAnchorEl, setNotificationsAnchorEl] = useState(null);
 
   const handleUserMenuOpen = (event) => {
     setUserMenuAnchorEl(event.currentTarget);
@@ -107,171 +106,6 @@ const Header = () => {
     { path: "/new-meeting", label: "New Recording", icon: <MicNone /> },
   ];
 
-  const mobileDrawerContent = (
-    <Box
-      sx={{
-        width: 280,
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        bgcolor: "background.paper",
-      }}
-    >
-      <Box
-        sx={{
-          p: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderBottom: "1px solid",
-          borderColor: "divider",
-        }}
-      >
-        <Logo size="medium" />
-      </Box>
-      {currentUser ? (
-        <>
-          <Box
-            sx={{
-              p: 2,
-              borderBottom: "1px solid",
-              borderColor: "divider",
-              bgcolor: alpha(theme.palette.primary.light, 0.1),
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Avatar
-                src={currentUser.photoURL}
-                alt={currentUser.displayName || "User"}
-                sx={{
-                  width: 48,
-                  height: 48,
-                  bgcolor: theme.palette.primary.main,
-                  color: theme.palette.primary.contrastText,
-                }}
-              >
-                {currentUser.displayName ? (
-                  currentUser.displayName[0].toUpperCase()
-                ) : (
-                  <Person />
-                )}
-              </Avatar>
-              <Box sx={{ ml: 1.5, overflow: "hidden" }}>
-                <Typography variant="subtitle2" noWrap fontWeight={600}>
-                  {currentUser.displayName || "User"}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" noWrap>
-                  {currentUser.email}
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-          <List component="nav" sx={{ flexGrow: 1, p: 2 }}>
-            {navItems.map((item) => (
-              <ListItem
-                key={item.path}
-                button
-                component={RouterLink}
-                to={item.path}
-                selected={isActive(item.path)}
-                onClick={() => setMobileDrawerOpen(false)}
-                sx={{
-                  borderRadius: 2,
-                  mb: 1,
-                  "&.Mui-selected": {
-                    backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                    "&:hover": {
-                      backgroundColor: alpha(theme.palette.primary.main, 0.15),
-                    },
-                    "& .MuiListItemIcon-root": {
-                      color: theme.palette.primary.main,
-                    },
-                  },
-                }}
-              >
-                <ListItemIcon>{item.icon}</ListItemIcon>
-                <ListItemText primary={item.label} />
-              </ListItem>
-            ))}
-            <Divider sx={{ my: 2 }} />
-            <ListItem
-              button
-              component={RouterLink}
-              to="/profile"
-              selected={isActive("/profile")}
-              onClick={() => setMobileDrawerOpen(false)}
-              sx={{
-                borderRadius: 2,
-                mb: 1,
-                "&.Mui-selected": {
-                  backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                },
-              }}
-            >
-              <ListItemIcon>
-                <Person />
-              </ListItemIcon>
-              <ListItemText primary="My Profile" />
-            </ListItem>
-            <ListItem
-              button
-              onClick={handleLogout}
-              sx={{
-                borderRadius: 2,
-                color: theme.palette.error.main,
-                "&:hover": {
-                  backgroundColor: alpha(theme.palette.error.main, 0.1),
-                },
-              }}
-            >
-              <ListItemIcon sx={{ color: "inherit" }}>
-                <Logout />
-              </ListItemIcon>
-              <ListItemText primary="Sign Out" />
-            </ListItem>
-          </List>
-        </>
-      ) : (
-        <Box
-          sx={{
-            p: 4,
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            flexGrow: 1,
-            gap: 2,
-          }}
-        >
-          <Button
-            variant="contained"
-            component={RouterLink}
-            to="/login"
-            color="primary"
-            size="large"
-            fullWidth
-            onClick={() => setMobileDrawerOpen(false)}
-            sx={{ borderRadius: 3 }}
-          >
-            Sign In
-          </Button>
-          <Button
-            variant="outlined"
-            component={RouterLink}
-            to="/register"
-            color="primary"
-            size="large"
-            fullWidth
-            onClick={() => setMobileDrawerOpen(false)}
-            sx={{ borderRadius: 3 }}
-          >
-            Create Account
-          </Button>
-        </Box>
-      )}
-    </Box>
-  );
-
   return (
     <>
       <ElevatedAppBar>
@@ -282,6 +116,7 @@ const Header = () => {
                 sx={{
                   display: "flex",
                   alignItems: "center",
+                  justifyContent: { xs: "center", md: "flex-start" },
                   flexGrow: { xs: 1, md: 0 },
                   mr: { md: 3 },
                 }}
@@ -300,6 +135,7 @@ const Header = () => {
                   </RouterLink>
                 </motion.div>
               </Box>
+
               {!isMobile && currentUser && (
                 <Box sx={{ display: "flex", flexGrow: 1, ml: 3 }}>
                   {navItems.map((item, index) => (
@@ -319,16 +155,16 @@ const Header = () => {
                           position: "relative",
                           "&::after": isActive(item.path)
                             ? {
-                                content: '""',
-                                position: "absolute",
-                                bottom: 6,
-                                left: "50%",
-                                transform: "translateX(-50%)",
-                                width: 16,
-                                height: 3,
-                                borderRadius: 4,
-                                backgroundColor: theme.palette.primary.main,
-                              }
+                              content: '""',
+                              position: "absolute",
+                              bottom: 6,
+                              left: "50%",
+                              transform: "translateX(-50%)",
+                              width: 16,
+                              height: 3,
+                              borderRadius: 4,
+                              backgroundColor: theme.palette.primary.main,
+                            }
                             : {},
                         }}
                       >
@@ -338,6 +174,7 @@ const Header = () => {
                   ))}
                 </Box>
               )}
+
               <Box
                 sx={{
                   display: "flex",
@@ -427,40 +264,90 @@ const Header = () => {
                   </>
                 ) : (
                   <>
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 0.3 }}
-                    >
-                      <Button
-                        variant="outlined"
-                        component={RouterLink}
-                        to="/login"
-                        sx={{
-                          borderRadius: 3,
-                          mr: 1,
-                        }}
-                      >
-                        Sign In
-                      </Button>
-                    </motion.div>
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: 0.4 }}
-                    >
-                      <Button
-                        variant="contained"
-                        component={RouterLink}
-                        to="/register"
-                        sx={{
-                          borderRadius: 3,
-                          background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                        }}
-                      >
-                        Sign Up
-                      </Button>
-                    </motion.div>
+                    {!isSmall && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.3 }}
+                        >
+                          <Button
+                            variant="outlined"
+                            component={RouterLink}
+                            sx={{
+                              borderRadius: 3,
+                            }}
+                            startIcon={<Mic fontSize="small" />}
+                            size="small"
+                          >
+                            Voice Recording
+                          </Button>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.4 }}
+                        >
+                          <Button
+                            variant="contained"
+                            component={RouterLink}
+                            sx={{
+                              borderRadius: 3,
+                              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            }}
+                            startIcon={<VolumeUp fontSize="small" />}
+                            size="small"
+                          >
+                            Audio Transcription
+                          </Button>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.3 }}
+                        >
+                          <Button
+                            variant="outlined"
+                            component={RouterLink}
+                            sx={{
+                              borderRadius: 3,
+                            }}
+                            startIcon={<NoteAlt fontSize="small" />}
+                            size="small"
+                          >
+                            AI Minutes
+                          </Button>
+                        </motion.div>
+                        <motion.div
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ duration: 0.5, delay: 0.4 }}
+                        >
+                          <Button
+                            variant="contained"
+                            component={RouterLink}
+                            sx={{
+                              borderRadius: 3,
+                              background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            }}
+                            startIcon={<Storage fontSize="small" />}
+                            size="small"
+                          >
+                            Cloud Storage
+                          </Button>
+                        </motion.div>
+                      </>
+                    )}
+
+                    {isMobile && (
+                      <IconButton
+                        color="inherit"
+                        aria-label="open drawer"
+                        edge="end"
+                        onClick={handleDrawerToggle}
+                        sx={{ ml: 1 }}
+                      ></IconButton>
+                    )}
                   </>
                 )}
               </Box>
@@ -468,7 +355,8 @@ const Header = () => {
           </Container>
         </AppBar>
       </ElevatedAppBar>
-        <Menu
+
+      <Menu
         id="user-menu"
         anchorEl={userMenuAnchorEl}
         open={Boolean(userMenuAnchorEl)}
@@ -538,21 +426,7 @@ const Header = () => {
           <Typography color="error">Sign Out</Typography>
         </MenuItem>
       </Menu>
-      <Drawer
-        anchor="left"
-        open={mobileDrawerOpen}
-        onClose={handleDrawerToggle}
-        ModalProps={{
-          keepMounted: true,
-        }}
-        PaperProps={{
-          sx: {
-            width: 280,
-          },
-        }}
-      >
-        {mobileDrawerContent}
-      </Drawer>
+
       <Toolbar />
     </>
   );
