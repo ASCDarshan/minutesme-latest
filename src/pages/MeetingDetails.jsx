@@ -216,11 +216,6 @@ const MeetingDetails = () => {
       label: "Copy as Text",
       onClick: handleCopyLink,
     },
-    {
-      icon: <Public fontSize="small" />,
-      label: "Publish to Web",
-      onClick: handlePublishToWeb,
-    },
   ];
 
   if (loading) {
@@ -963,13 +958,6 @@ const MeetingDetails = () => {
           sx: { mt: 1.5, borderRadius: 2, minWidth: 180 },
         }}
       >
-        <MenuItem onClick={handleCloseActionsMenu}>
-          <ListItemIcon>
-            <DownloadIcon fontSize="small" />
-          </ListItemIcon>
-          Download PDF
-        </MenuItem>
-        <Divider />
         <MenuItem
           onClick={handleDeleteMeeting}
           sx={{ color: theme.palette.error.main }}
@@ -980,6 +968,7 @@ const MeetingDetails = () => {
           Delete Meeting
         </MenuItem>
       </Menu>
+
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
