@@ -145,7 +145,7 @@ const Profile = () => {
   const handleLogout = async () => {
     setLogoutDialogOpen(false);
     await logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const handleDeleteAccount = async () => {
@@ -178,7 +178,7 @@ const Profile = () => {
             variant="contained"
             color="primary"
             component={RouterLink}
-            to="/login"
+            to="/"
             sx={{ mt: 2 }}
           >
             Sign In
@@ -224,7 +224,7 @@ const Profile = () => {
         >
           <Button
             component={RouterLink}
-            to="/"
+            to="/dashboard"
             startIcon={<ArrowBack />}
             sx={{
               mb: 3,
@@ -756,7 +756,7 @@ const Profile = () => {
                       </Typography>
 
                       {stats.recentMeetings &&
-                      stats.recentMeetings.length > 0 ? (
+                        stats.recentMeetings.length > 0 ? (
                         <List sx={{ px: 0 }}>
                           {stats.recentMeetings.map((meeting, index) => (
                             <React.Fragment key={meeting.id || index}>
@@ -821,11 +821,11 @@ const Profile = () => {
                                       >
                                         Created:{" "}
                                         {meeting.createdAt &&
-                                        typeof meeting.createdAt.seconds ===
+                                          typeof meeting.createdAt.seconds ===
                                           "number"
                                           ? moment(
-                                              meeting.createdAt.seconds * 1000
-                                            ).format("MMM D, YYYY, hh:mm A")
+                                            meeting.createdAt.seconds * 1000
+                                          ).format("MMM D, YYYY, hh:mm A")
                                           : "No date"}
                                       </Typography>
                                       {meeting.duration && (

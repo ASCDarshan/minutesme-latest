@@ -20,9 +20,9 @@ import {
   Stepper,
   Step,
   StepLabel,
-  alpha,
   Snackbar,
   useMediaQuery,
+  alpha,
 } from "@mui/material";
 import { ArrowBack, Mic as MicIcon, Notes } from "@mui/icons-material";
 import NewMeetingMobile from "./NewMeeting/NewMeetingMobile";
@@ -312,7 +312,7 @@ const NewMeeting = () => {
     resetTranscript();
     setRecordingStopped(false);
     hasTransitionedToStep1.current = false;
-    setMeetingTitle(""); 
+    setMeetingTitle("");
   }, [resetTranscript]);
 
   const handleSnackbarClose = (event, reason) => {
@@ -326,8 +326,8 @@ const NewMeeting = () => {
   const processingError = useMemo(
     () =>
       contextError &&
-      !contextError.startsWith("Transcription failed") &&
-      !contextError.startsWith("Recording Error")
+        !contextError.startsWith("Transcription failed") &&
+        !contextError.startsWith("Recording Error")
         ? contextError
         : null,
     [contextError]
@@ -436,7 +436,7 @@ const NewMeeting = () => {
         <Box sx={{ mb: 4 }}>
           <Button
             component={RouterLink}
-            to="/"
+            to="/dashboard"
             startIcon={<ArrowBack />}
             sx={{ mb: 2 }}
           >

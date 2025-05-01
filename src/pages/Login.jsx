@@ -73,9 +73,10 @@ const FeatureCard = ({ icon, title, delay }) => {
             flexDirection: "column",
             alignItems: "center",
             justifyContent: "center",
-            p: 2,
-            height: { xs: 120, md: 140 },
-            width: { xs: 120, md: 140 },
+            p: 3,
+            m: 1,
+            height: { xs: 150, md: 150 },
+            width: { xs: 150, md: 150 },
             borderRadius: 4,
             background: theme.palette.background.paper,
             position: "relative",
@@ -103,7 +104,6 @@ const FeatureCard = ({ icon, title, delay }) => {
             sx={{
               color: theme.palette.primary.main,
               fontSize: 40,
-              mb: 1,
               transition: "transform 0.3s ease",
               "&:hover": {
                 transform: "translateZ(20px)",
@@ -123,7 +123,7 @@ const FeatureCard = ({ icon, title, delay }) => {
           </Typography>
         </Box>
       </motion.div>
-    </motion.div>
+    </motion.div >
   );
 };
 
@@ -177,7 +177,7 @@ const Login = () => {
   const [showFeatures, setShowFeatures] = useState(false);
 
   if (currentUser) {
-    return <Navigate to="/" />;
+    return <Navigate to="/dashboard" />;
   }
 
   const handleGoogleLogin = async () => {

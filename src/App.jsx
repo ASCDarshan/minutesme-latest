@@ -27,7 +27,7 @@ const PrivateRoute = ({ children }) => {
   }
 
   if (!currentUser) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
 
   return children;
@@ -39,9 +39,9 @@ const AppContent = () => {
       <Header />
       <Suspense fallback={<Loading />}>
         <Routes>
-          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Login />} />
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <PrivateRoute>
                 <Dashboard />

@@ -140,9 +140,9 @@ const DashboardShimmer = ({ type = "card", count = 1 }) => {
   return (
     <>
       {type === "list" ? (
-        <Box>{renderSkeletons()}</Box>
+        <Box sx={{ mt: 5 }}>{renderSkeletons()}</Box>
       ) : (
-        <Grid container spacing={3}>
+        <Grid container spacing={3} sx={{ mt: 5 }}>
           {renderSkeletons()}
         </Grid>
       )}

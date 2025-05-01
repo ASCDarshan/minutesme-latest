@@ -22,7 +22,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import {
-  Menu as MenuIcon,
   Settings,
   Logout,
   AccountCircle,
@@ -76,7 +75,6 @@ const Header = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const [userMenuAnchorEl, setUserMenuAnchorEl] = useState(null);
 
   const handleUserMenuOpen = (event) => {
@@ -87,14 +85,10 @@ const Header = () => {
     setUserMenuAnchorEl(null);
   };
 
-  const handleDrawerToggle = () => {
-    setMobileDrawerOpen(!mobileDrawerOpen);
-  };
-
   const handleLogout = async () => {
     handleUserMenuClose();
     await logout();
-    navigate("/login");
+    navigate("/");
   };
 
   const isActive = (path) => {
@@ -102,9 +96,35 @@ const Header = () => {
   };
 
   const navItems = [
-    { path: "/", label: "Dashboard", icon: <Dashboard /> },
+    { path: "/dashboard", label: "Dashboard", icon: <Dashboard /> },
     { path: "/new-meeting", label: "New Recording", icon: <MicNone /> },
   ];
+
+  const commonBoxStyles = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 3,
+    padding: theme.spacing(0.5, 1.5),
+    cursor: "default",
+    userSelect: "none",
+    minWidth: "64px",
+    boxSizing: "border-box",
+  };
+
+  const commonTextStyles = {
+    fontSize: theme.typography.pxToRem(13),
+    fontWeight: theme.typography.fontWeightMedium,
+    lineHeight: 1.75,
+    letterSpacing: "0.02857em",
+    fontFamily: theme.typography.fontFamily,
+  };
+
+  const commonIconStyles = {
+    fontSize: theme.typography.pxToRem(18),
+    marginRight: theme.spacing(1),
+    display: "inherit",
+  };
 
   return (
     <>
@@ -128,7 +148,7 @@ const Header = () => {
                   whileHover={{ scale: 1.05 }}
                 >
                   <RouterLink
-                    to="/"
+                    to="/dashboard"
                     style={{ textDecoration: "none", display: "flex" }}
                   >
                     <Logo size={isMobile ? "small" : "medium"} />
@@ -250,17 +270,6 @@ const Header = () => {
                         </IconButton>
                       </Tooltip>
                     </motion.div>
-                    {isMobile && (
-                      <IconButton
-                        color="inherit"
-                        aria-label="open drawer"
-                        edge="end"
-                        onClick={handleDrawerToggle}
-                        sx={{ ml: 1 }}
-                      >
-                        <MenuIcon />
-                      </IconButton>
-                    )}
                   </>
                 ) : (
                   <>
@@ -271,82 +280,95 @@ const Header = () => {
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                          <Button
-                            variant="outlined"
-                            component={RouterLink}
+                          <Box
                             sx={{
-                              borderRadius: 3,
+                              ...commonBoxStyles,
+                              border: `1px solid ${theme.palette.primary.main}`,
+                              color: theme.palette.primary.main,
                             }}
-                            startIcon={<Mic fontSize="small" />}
-                            size="small"
                           >
-                            Voice Recording
-                          </Button>
+                            <Mic sx={commonIconStyles} />
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={commonTextStyles}
+                            >
+                              Voice Recording
+                            </Typography>
+                          </Box>
                         </motion.div>
+
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.4 }}
                         >
-                          <Button
-                            variant="contained"
-                            component={RouterLink}
+                          <Box
                             sx={{
-                              borderRadius: 3,
+                              ...commonBoxStyles,
+                              color: theme.palette.primary.contrastText,
                               background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                              border: "1px solid transparent",
                             }}
-                            startIcon={<VolumeUp fontSize="small" />}
-                            size="small"
                           >
-                            Audio Transcription
-                          </Button>
+                            <VolumeUp sx={commonIconStyles} />
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={commonTextStyles}
+                            >
+                              Audio Transcription
+                            </Typography>
+                          </Box>
                         </motion.div>
+
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.3 }}
                         >
-                          <Button
-                            variant="outlined"
-                            component={RouterLink}
+                          <Box
                             sx={{
-                              borderRadius: 3,
+                              ...commonBoxStyles,
+                              border: `1px solid ${theme.palette.primary.main}`,
+                              color: theme.palette.primary.main,
                             }}
-                            startIcon={<NoteAlt fontSize="small" />}
-                            size="small"
                           >
-                            AI Minutes
-                          </Button>
+                            <NoteAlt sx={commonIconStyles} />
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={commonTextStyles}
+                            >
+                              AI Minutes
+                            </Typography>
+                          </Box>
                         </motion.div>
+
                         <motion.div
                           initial={{ opacity: 0, x: 20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, delay: 0.4 }}
                         >
-                          <Button
-                            variant="contained"
-                            component={RouterLink}
+                          <Box
                             sx={{
-                              borderRadius: 3,
+                              ...commonBoxStyles,
+                              color: theme.palette.primary.contrastText,
                               background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                              border: "1px solid transparent",
                             }}
-                            startIcon={<Storage fontSize="small" />}
-                            size="small"
                           >
-                            Cloud Storage
-                          </Button>
+                            <Storage sx={commonIconStyles} />
+                            <Typography
+                              variant="body2"
+                              component="span"
+                              sx={commonTextStyles}
+                            >
+                              Cloud Storage
+                            </Typography>
+                          </Box>
                         </motion.div>
                       </>
-                    )}
-
-                    {isMobile && (
-                      <IconButton
-                        color="inherit"
-                        aria-label="open drawer"
-                        edge="end"
-                        onClick={handleDrawerToggle}
-                        sx={{ ml: 1 }}
-                      ></IconButton>
                     )}
                   </>
                 )}
