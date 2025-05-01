@@ -19,6 +19,7 @@ import {
   ListItemText,
   Drawer,
   Tooltip,
+  alpha,
 } from "@mui/material";
 import { motion } from "framer-motion";
 import LiveTranscriptCard from "./LiveTranscriptCard";
@@ -192,18 +193,18 @@ const NewMeetingMobile = (props) => {
                 bgcolor: contextIsRecording
                   ? alpha(theme.palette.error.main, 0.1)
                   : isReadyToProcess
-                  ? alpha(theme.palette.success.main, 0.1)
-                  : isUploading
-                  ? alpha(theme.palette.info.main, 0.1)
-                  : alpha(theme.palette.primary.main, 0.1),
+                    ? alpha(theme.palette.success.main, 0.1)
+                    : isUploading
+                      ? alpha(theme.palette.info.main, 0.1)
+                      : alpha(theme.palette.primary.main, 0.1),
                 borderBottom: "1px solid",
                 borderColor: contextIsRecording
                   ? alpha(theme.palette.error.main, 0.2)
                   : isReadyToProcess
-                  ? alpha(theme.palette.success.main, 0.2)
-                  : isUploading
-                  ? alpha(theme.palette.info.main, 0.2)
-                  : alpha(theme.palette.primary.main, 0.2),
+                    ? alpha(theme.palette.success.main, 0.2)
+                    : isUploading
+                      ? alpha(theme.palette.info.main, 0.2)
+                      : alpha(theme.palette.primary.main, 0.2),
               }}
             >
               {contextIsRecording ? (
@@ -274,7 +275,7 @@ const NewMeetingMobile = (props) => {
                     <LanguageIcon fontSize="small" />
                   </Button>
                 </Tooltip>
-                <Tooltip title="Upload audio file">
+                <Tooltip title="Upload audio file (MP3 format only)">
                   <Button
                     variant="outlined"
                     size="small"
@@ -401,11 +402,10 @@ const NewMeetingMobile = (props) => {
                         currentLanguage === language.code
                           ? alpha(theme.palette.primary.main, 0.08)
                           : "transparent",
-                      border: `1px solid ${
-                        currentLanguage === language.code
-                          ? theme.palette.primary.main
-                          : "transparent"
-                      }`,
+                      border: `1px solid ${currentLanguage === language.code
+                        ? theme.palette.primary.main
+                        : "transparent"
+                        }`,
                     }}
                   >
                     <ListItemIcon>
@@ -596,8 +596,8 @@ const NewMeetingMobile = (props) => {
               contextIsRecording
                 ? "Stop recording"
                 : isReadyToProcess
-                ? "Process Audio"
-                : "Start recording"
+                  ? "Process Audio"
+                  : "Start recording"
             }
             onClick={
               isReadyToProcess ? handleProcessRecording : toggleRecording
@@ -606,10 +606,10 @@ const NewMeetingMobile = (props) => {
               isReadyToProcess
                 ? !canProcess || isLoading || isUploading
                 : isLoading ||
-                  isUploading ||
-                  mediaRecorderStatus === "acquiring_media" ||
-                  (!isMicrophoneAvailable && !audioBlob) ||
-                  !speechRecognitionSupported
+                isUploading ||
+                mediaRecorderStatus === "acquiring_media" ||
+                (!isMicrophoneAvailable && !audioBlob) ||
+                !speechRecognitionSupported
             }
             sx={{
               position: "fixed",

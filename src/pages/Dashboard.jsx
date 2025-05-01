@@ -199,6 +199,7 @@ const Dashboard = () => {
         )} 1px, transparent 0)`,
         backgroundSize: "20px 20px",
         backgroundPosition: "0 0",
+        mt: 5
       }}
     >
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>

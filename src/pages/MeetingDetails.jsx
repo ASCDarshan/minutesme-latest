@@ -21,10 +21,10 @@ import {
   Tabs,
   ListItemIcon,
   Alert,
-  alpha,
   useTheme,
   useMediaQuery,
   Snackbar,
+  alpha,
 } from "@mui/material";
 import {
   ArrowBack,
@@ -48,6 +48,7 @@ import {
   Public,
   Email,
 } from "@mui/icons-material";
+
 import moment from "moment";
 import AudioPlayer from "../components/MeetingDetails/AudioPlayer";
 import AnimatedSection from "../components/MeetingDetails/AnimatedSection";
@@ -246,7 +247,7 @@ const MeetingDetails = () => {
         <Alert severity="error" sx={{ mb: 2 }}>
           Error loading meeting: {error}
         </Alert>
-        <Button component={RouterLink} to="/" startIcon={<ArrowBack />}>
+        <Button component={RouterLink} to="/dashboard" startIcon={<ArrowBack />}>
           Return to Dashboard
         </Button>
       </Container>
@@ -258,7 +259,7 @@ const MeetingDetails = () => {
         <Alert severity="warning" sx={{ mb: 2 }}>
           Meeting data not found or could not be loaded.
         </Alert>
-        <Button component={RouterLink} to="/" startIcon={<ArrowBack />}>
+        <Button component={RouterLink} to="/dashboard" startIcon={<ArrowBack />}>
           Return to Dashboard
         </Button>
       </Container>
@@ -357,7 +358,7 @@ const MeetingDetails = () => {
           >
             <Button
               component={RouterLink}
-              to="/"
+              to="/dashboard"
               startIcon={<ArrowBack />}
               sx={{ mb: 2 }}
             >
