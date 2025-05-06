@@ -18,6 +18,12 @@ import {
   CardContent,
   Chip,
   CardHeader,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  Button,
 } from "@mui/material";
 import {
   Delete as DeleteIcon,
@@ -29,9 +35,10 @@ import {
 } from "@mui/icons-material";
 import moment from "moment";
 
-const MeetingCard = ({ meeting, onDelete, onEdit }) => {
+const MeetingCard = ({ meeting, onDelete }) => {
   const theme = useTheme();
   const [anchorEl, setAnchorEl] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const handleMenuClick = (event) => {
@@ -48,13 +55,20 @@ const MeetingCard = ({ meeting, onDelete, onEdit }) => {
     setAnchorEl(null);
   };
 
-  const handleDelete = (event) => {
+  const handleDeleteClick = (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if (window.confirm("Delete this meeting?")) {
-      onDelete(meeting.id);
-    }
+    setDeleteDialogOpen(true);
     setAnchorEl(null);
+  };
+
+  const handleConfirmDelete = () => {
+    onDelete(meeting.id);
+    setDeleteDialogOpen(false);
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
   };
 
   const formattedDate = meeting.createdAt?.toDate()
@@ -248,7 +262,7 @@ const MeetingCard = ({ meeting, onDelete, onEdit }) => {
           </MenuItem>
           <Divider />
           <MenuItem
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             sx={{ color: theme.palette.error.main }}
           >
             <ListItemIcon>
@@ -258,6 +272,47 @@ const MeetingCard = ({ meeting, onDelete, onEdit }) => {
           </MenuItem>
         </Menu>
       </Card>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleCancelDelete}
+        aria-labelledby="delete-meeting-dialog-title"
+        aria-describedby="delete-meeting-dialog-description"
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: "400px",
+            width: "100%",
+          },
+        }}
+      >
+        <DialogTitle id="delete-meeting-dialog-title" sx={{ pb: 1 }}>
+          Delete Meeting
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-meeting-dialog-description">
+            Are you sure you want to This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button
+            onClick={handleCancelDelete}
+            sx={{ borderRadius: 2 }}
+            variant="outlined"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            color="error"
+            variant="contained"
+            sx={{ borderRadius: 2 }}
+            autoFocus
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </motion.div>
   );
 };

@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMeeting } from "../context/MeetingContext";
-import { motion, AnimatePresence, useInView, delay } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Box,
   Button,
@@ -30,6 +30,8 @@ import {
   alpha,
   useTheme,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import {
   Person,
@@ -41,15 +43,14 @@ import {
   VerifiedUser,
   CheckCircle,
   Close,
-  MicNone,
   MoreVert,
   Event,
   AccessTime,
   CalendarToday,
   Description,
 } from "@mui/icons-material";
-import StatCard from "../components/Profile/StatCard";
 import moment from "moment/moment";
+import StatCard from "../components/Profile/StatCard";
 
 const Profile = () => {
   const { currentUser, logout } = useAuth();
@@ -62,6 +63,8 @@ const Profile = () => {
   const [downloadDialog, setDownloadDialog] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [editedName, setEditedName] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -109,12 +112,10 @@ const Profile = () => {
         storageUsed += 5;
       }
 
-
       if (meeting.audioUrl) {
         storageUsed += 500;
       }
     });
-
 
     storageUsed = Math.round(storageUsed / 1024);
 
@@ -146,9 +147,12 @@ const Profile = () => {
     navigate("/");
   };
 
-  const handleDeleteAccount = async () => {
+  const handleDeleteAccount = () => {
     setDeleteAccountDialogOpen(false);
-    alert("Account deletion will be implemented in a future update");
+    setSnackbarOpen(true);
+    setSnackbarMessage(
+      "Account deletion will be implemented in a future update"
+    );
   };
 
   const handleEnterEditMode = () => {
@@ -158,7 +162,8 @@ const Profile = () => {
 
   const handleSaveProfile = () => {
     setProfileEditMode(false);
-    alert("Profile update will be implemented in a future update");
+    setSnackbarOpen(true);
+    setSnackbarMessage("Profile update will be implemented in a future update");
   };
 
   const handleCancelEdit = () => {
@@ -237,7 +242,7 @@ const Profile = () => {
           </Button>
         </motion.div>
 
-        <Grid container spacing={4} xs={12} >
+        <Grid container spacing={4} xs={12}>
           <Grid item xs={12} md={4}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -278,7 +283,10 @@ const Profile = () => {
                   >
                     <Badge
                       overlap="circular"
-                      anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+                      anchorOrigin={{
+                        vertical: "bottom",
+                        horizontal: "right",
+                      }}
                       badgeContent={
                         profileEditMode ? null : (
                           <IconButton
@@ -414,12 +422,6 @@ const Profile = () => {
                         },
                       }}
                       onClick={() => setDownloadDialog(true)}
-
-                    // onClick={() => {
-                    //   alert(
-                    //     "This feature will be implemented in a future update"
-                    //   );
-                    // }}
                     >
                       <ListItemIcon sx={{ minWidth: 42 }}>
                         <Box
@@ -595,8 +597,14 @@ const Profile = () => {
                               borderRadius: 3,
                               overflow: "hidden",
                               background: theme.palette.background.paper,
-                              border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                              boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                              border: `1px solid ${alpha(
+                                theme.palette.divider,
+                                0.08
+                              )}`,
+                              boxShadow: `0 10px 30px ${alpha(
+                                theme.palette.common.black,
+                                0.07
+                              )}`,
                             }}
                           >
                             <CardContent>
@@ -622,7 +630,10 @@ const Profile = () => {
                                     backgroundColor:
                                       storagePercentage >= 80
                                         ? alpha(theme.palette.warning.main, 0.1)
-                                        : alpha(theme.palette.success.main, 0.1),
+                                        : alpha(
+                                            theme.palette.success.main,
+                                            0.1
+                                          ),
                                     color:
                                       storagePercentage >= 80
                                         ? theme.palette.warning.main
@@ -634,20 +645,29 @@ const Profile = () => {
                                 </Typography>
                               </Box>
 
-                              <Box >
+                              <Box>
                                 <Box
                                   sx={{
                                     display: "flex",
                                     justifyContent: "space-between",
                                     mb: 1,
-                                    flexDirection: { xs: "column", sm: "row" },
+                                    flexDirection: {
+                                      xs: "column",
+                                      sm: "row",
+                                    },
                                     gap: 0.5,
                                   }}
                                 >
-                                  <Typography variant="body2" color="text.secondary">
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
                                     {stats.storageUsed} MB Used
                                   </Typography>
-                                  <Typography variant="body2" color="text.secondary">
+                                  <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                  >
                                     {storageLimit} MB Total
                                   </Typography>
                                 </Box>
@@ -657,7 +677,10 @@ const Profile = () => {
                                   sx={{
                                     height: 8,
                                     borderRadius: 4,
-                                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                                    backgroundColor: alpha(
+                                      theme.palette.primary.main,
+                                      0.08
+                                    ),
                                     "& .MuiLinearProgress-bar": {
                                       borderRadius: 4,
                                       background:
@@ -672,7 +695,6 @@ const Profile = () => {
                           </Card>
                         </Grid>
                       </Grid>
-
                     </CardContent>
                   </Card>
                 </motion.div>
@@ -701,7 +723,7 @@ const Profile = () => {
                       </Typography>
 
                       {stats.recentMeetings &&
-                        stats.recentMeetings.length > 0 ? (
+                      stats.recentMeetings.length > 0 ? (
                         <List sx={{ px: 0 }}>
                           {stats.recentMeetings.map((meeting, index) => (
                             <React.Fragment key={meeting.id || index}>
@@ -766,11 +788,11 @@ const Profile = () => {
                                       >
                                         Created:{" "}
                                         {meeting.createdAt &&
-                                          typeof meeting.createdAt.seconds ===
+                                        typeof meeting.createdAt.seconds ===
                                           "number"
                                           ? moment(
-                                            meeting.createdAt.seconds * 1000
-                                          ).format("MMM D, YYYY, hh:mm A")
+                                              meeting.createdAt.seconds * 1000
+                                            ).format("MMM D, YYYY, hh:mm A")
                                           : "No date"}
                                       </Typography>
                                       {meeting.duration && (
@@ -933,6 +955,20 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity="error"
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

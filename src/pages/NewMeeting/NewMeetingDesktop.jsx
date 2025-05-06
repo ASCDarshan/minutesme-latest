@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, {
   useState,
   useEffect,
@@ -6,13 +5,11 @@ import React, {
   useCallback,
   useMemo,
 } from "react";
-import { Link as RouterLink } from "react-router-dom";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
 import { useMeeting } from "../../context/MeetingContext";
 import { AnimatePresence, motion } from "framer-motion";
-
 import {
   Box,
   Button,
@@ -32,12 +29,9 @@ import {
   DialogContent,
   DialogActions,
   TextField,
-  Zoom,
   SvgIcon,
 } from "@mui/material";
-
 import {
-  ArrowBack,
   Mic as MicIcon,
   Stop as StopIcon,
   Notes as NotesIcon,
@@ -236,7 +230,6 @@ const InstructionsDrawer = ({ open, onClose, keywordExamples, theme }) => {
                 </Typography>
               </Box>
             </Box>
-
             <Box sx={{ display: "flex", gap: 2 }}>
               <Box
                 sx={{
@@ -265,7 +258,6 @@ const InstructionsDrawer = ({ open, onClose, keywordExamples, theme }) => {
                 </Typography>
               </Box>
             </Box>
-
             <Box sx={{ display: "flex", gap: 2 }}>
               <Box
                 sx={{
@@ -294,7 +286,6 @@ const InstructionsDrawer = ({ open, onClose, keywordExamples, theme }) => {
                 </Typography>
               </Box>
             </Box>
-
             <Box sx={{ display: "flex", gap: 2 }}>
               <Box
                 sx={{
@@ -937,7 +928,6 @@ const MeetingRecorder = () => {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
         display: "flex",
         flexDirection: "column",
         background: `linear-gradient(to bottom, ${alpha(
