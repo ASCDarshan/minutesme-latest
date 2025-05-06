@@ -20,17 +20,22 @@ import {
   Tab,
   Tabs,
   ListItemIcon,
+  ListItemText,
   Alert,
   useTheme,
   useMediaQuery,
   Snackbar,
   alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   ArrowBack,
   MoreVert,
   Share as ShareIcon,
-  Download as DownloadIcon,
   Delete as DeleteIcon,
   ContentCopy,
   CalendarToday,
@@ -48,7 +53,6 @@ import {
   Public,
   Email,
 } from "@mui/icons-material";
-
 import moment from "moment";
 import AudioPlayer from "../components/MeetingDetails/AudioPlayer";
 import AnimatedSection from "../components/MeetingDetails/AnimatedSection";
@@ -99,6 +103,7 @@ const MeetingDetails = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const loadMeeting = useCallback(contextLoadMeeting, [contextLoadMeeting]);
 
@@ -111,66 +116,78 @@ const MeetingDetails = () => {
   }, [id, loadMeeting]);
 
   const handleDeleteMeeting = async () => {
-    handleCloseActionsMenu();
-    if (
-      window.confirm(
-        "Are you sure you want to delete this meeting and all its data? This cannot be undone."
-      )
-    ) {
-      const deleted = await removeMeeting(id);
-      if (deleted) {
-        navigate("/");
-      } else {
-        console.error("MeetingDetails: Failed to delete meeting.");
-      }
+    setDeleteDialogOpen(false);
+    const deleted = await removeMeeting(id);
+    if (deleted) {
+      navigate("/");
+      setSnackbarMessage("Meeting deleted successfully");
+      setSnackbarOpen(true);
+    } else {
+      setSnackbarMessage("Failed to delete meeting");
+      setSnackbarOpen(true);
     }
   };
 
   const handleChangeTab = (event, newValue) => {
     setActiveTab(newValue);
   };
-  const handleOpenShareMenu = (event) =>
-    setShareMenuAnchor(event.currentTarget);
-  const handleCloseShareMenu = () => setShareMenuAnchor(null);
-  const handleOpenActionsMenu = (event) =>
-    setActionsMenuAnchor(event.currentTarget);
-  const handleCloseActionsMenu = () => setActionsMenuAnchor(null);
 
-  const handleShareEmail = () => {
-    handleCloseShareMenu();
-    const subject = `Meeting Minutes: ${currentMeeting.title || "Untitled Meeting"}`;
-    const body = generatePlainTextSummary();
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, "_blank");
+  const handleOpenShareMenu = (event) => {
+    event.stopPropagation();
+    setShareMenuAnchor(event.currentTarget);
   };
 
+  const handleCloseShareMenu = () => setShareMenuAnchor(null);
+  const handleOpenActionsMenu = (event) => {
+    event.stopPropagation();
+    setActionsMenuAnchor(event.currentTarget);
+  };
+  const handleCloseActionsMenu = () => setActionsMenuAnchor(null);
+
   const generatePlainTextSummary = () => {
+    const minutesData = currentMeeting?.minutesData || {};
     let summary = "";
-    summary += `Meeting Title: ${minutesData?.title || "Untitled"}\n`;
+    summary += `Meeting Title: ${currentMeeting?.title || "Untitled"}\n`;
     summary += `Date: ${formattedDate} ${formattedTime}\n`;
+
     if (minutesData?.participants && minutesData.participants.length > 0) {
-      summary += `Participants: ${minutesData.participants.join(", ")}\n`;
+      summary += `Participants: ${
+        Array.isArray(minutesData.participants)
+          ? minutesData.participants.join(", ")
+          : minutesData.participants
+      }\n`;
     }
+
     if (minutesData?.agenda && minutesData.agenda.length > 0) {
       summary += "\nAgenda:\n";
-      minutesData.agenda.forEach((item) => {
+      (Array.isArray(minutesData.agenda)
+        ? minutesData.agenda
+        : [minutesData.agenda]
+      ).forEach((item) => {
         summary += `- ${item}\n`;
       });
     }
-    if (minutesData?.keyPoints && Object.keys(minutesData.keyPoints).length > 0) {
+
+    if (
+      minutesData?.keyPoints &&
+      Object.keys(minutesData.keyPoints).length > 0
+    ) {
       summary += "\nKey Discussion Points:\n";
       Object.entries(minutesData.keyPoints).forEach(([key, value]) => {
         summary += `- ${value}\n`;
       });
     }
+
     if (minutesData?.decisions && minutesData.decisions.length > 0) {
       summary += "\nDecisions Made:\n";
-      minutesData.decisions.forEach((decision) => {
+      (Array.isArray(minutesData.decisions)
+        ? minutesData.decisions
+        : [minutesData.decisions]
+      ).forEach((decision) => {
         summary += `- ${decision}\n`;
       });
     }
+
     if (actionItems.length > 0) {
       summary += "\nAction Items:\n";
       actionItems.forEach((item) => {
@@ -180,42 +197,68 @@ const MeetingDetails = () => {
         summary += ` - Status: ${item.complete ? "Completed" : "Pending"}\n`;
       });
     }
+
     if (minutesData?.nextSteps) {
       summary += "\nNext Steps:\n";
       summary += `${minutesData.nextSteps}\n`;
     }
+
     if (minutesData?.transcription) {
       summary += "\nTranscript:\n";
       summary += `${minutesData.transcription}\n`;
     }
+
     return summary;
+  };
+
+  const handleShareEmail = () => {
+    handleCloseShareMenu();
+    const subject = `Meeting Minutes: ${
+      currentMeeting?.title || "Untitled Meeting"
+    }`;
+    const body = generatePlainTextSummary();
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoUrl, "_blank");
   };
 
   const handleCopyLink = () => {
     handleCloseShareMenu();
     const plainTextSummary = generatePlainTextSummary();
-    navigator.clipboard.writeText(plainTextSummary).then(() => {
-      setSnackbarMessage("Meeting summary copied to clipboard!");
-      setSnackbarOpen(true);
-    });
+    navigator.clipboard
+      .writeText(plainTextSummary)
+      .then(() => {
+        setSnackbarMessage("Meeting summary copied to clipboard!");
+        setSnackbarOpen(true);
+      })
+      .catch(() => {
+        setSnackbarMessage("Failed to copy to clipboard");
+        setSnackbarOpen(true);
+      });
   };
 
   const handlePublishToWeb = () => {
     handleCloseShareMenu();
-    const plainTextSummary = generatePlainTextSummary();
-    // In a real application, this would involve sending the data to a server
-    // to be hosted on a public URL. You would likely send the plainTextSummary.
-    console.log("Publishing to web (plain text):\n", plainTextSummary);
-    setSnackbarMessage("Publish to web functionality (simulated with plain text)");
+    setSnackbarMessage("Publish to web functionality coming soon!");
     setSnackbarOpen(true);
   };
 
   const shareOptions = [
-    { icon: <Email fontSize="small" />, label: "Email", onClick: handleShareEmail },
+    {
+      icon: <Email fontSize="small" />,
+      label: "Email",
+      onClick: handleShareEmail,
+    },
     {
       icon: <ContentCopy fontSize="small" />,
       label: "Copy as Text",
       onClick: handleCopyLink,
+    },
+    {
+      icon: <Public fontSize="small" />,
+      label: "Publish to Web",
+      onClick: handlePublishToWeb,
     },
   ];
 
@@ -227,12 +270,6 @@ const MeetingDetails = () => {
           flexDirection: "column",
           minHeight: "100vh",
           bgcolor: alpha(theme.palette.background.default, 0.97),
-          backgroundImage: `radial-gradient(${alpha(
-            theme.palette.primary.main,
-            0.05
-          )} 1px, transparent 0)`,
-          backgroundSize: "20px 20px",
-          backgroundPosition: "0 0",
         }}
       >
         <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
@@ -241,25 +278,35 @@ const MeetingDetails = () => {
       </Box>
     );
   }
+
   if (error) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
           Error loading meeting: {error}
         </Alert>
-        <Button component={RouterLink} to="/dashboard" startIcon={<ArrowBack />}>
+        <Button
+          component={RouterLink}
+          to="/dashboard"
+          startIcon={<ArrowBack />}
+        >
           Return to Dashboard
         </Button>
       </Container>
     );
   }
+
   if (!currentMeeting) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="warning" sx={{ mb: 2 }}>
-          Meeting data not found or could not be loaded.
+          Meeting not found
         </Alert>
-        <Button component={RouterLink} to="/dashboard" startIcon={<ArrowBack />}>
+        <Button
+          component={RouterLink}
+          to="/dashboard"
+          startIcon={<ArrowBack />}
+        >
           Return to Dashboard
         </Button>
       </Container>
@@ -270,55 +317,46 @@ const MeetingDetails = () => {
   const hasMinutesError = !!minutesData?.error;
 
   const formattedDate = currentMeeting.createdAt?.toDate()
-    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D,YYYY")
+    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D, YYYY")
     : "Date unavailable";
   const formattedTime = currentMeeting.createdAt?.toDate()
     ? moment(currentMeeting.createdAt.toDate()).format("h:mm A")
     : "";
 
   let parsedActionItems = [];
-  if (Array.isArray(minutesData?.actionItems)) {
-    parsedActionItems = minutesData.actionItems.map((item) => {
-      const contentMatch =
-        typeof item === "string"
-          ? item
+  try {
+    if (minutesData?.actionItems) {
+      parsedActionItems = (
+        Array.isArray(minutesData.actionItems)
+          ? minutesData.actionItems
+          : [minutesData.actionItems]
+      ).map((item) => {
+        if (typeof item !== "string")
+          return {
+            content: "Invalid action item format",
+            assignee: null,
+            dueDate: null,
+            complete: false,
+          };
+
+        return {
+          content: item
             .replace(/-\s*\[.*?\]\s*/g, "")
             .replace(/\[Due:.*?\]/g, "")
-            .trim()
-          : "Invalid action item format";
-      const assigneeMatch =
-        typeof item === "string" ? item.match(/\[(.*?)\]/)?.[1] : null;
-      const dueDateMatch =
-        typeof item === "string" ? item.match(/\[Due:\s*(.*?)\]/)?.[1] : null;
-      return {
-        content: contentMatch,
-        assignee: assigneeMatch,
-        dueDate: dueDateMatch,
-        complete: false,
-      };
-    });
-  } else {
-    console.warn(
-      "minutesData.actionItems is not an array or is missing:",
-      minutesData?.actionItems
-    );
+            .trim(),
+          assignee: item.match(/\[(.*?)\]/)?.[1] || null,
+          dueDate: item.match(/\[Due:\s*(.*?)\]/)?.[1] || null,
+          complete: item.includes("[x]") || item.includes("[X]"),
+        };
+      });
+    }
+  } catch (e) {
+    console.error("Error parsing action items:", e);
     parsedActionItems = [
       {
-        content: "Review project timeline",
-        assignee: "John",
-        dueDate: "May 21",
-        complete: false,
-      },
-      {
-        content: "Schedule design sync",
-        assignee: "Sarah",
-        dueDate: "May 18",
-        complete: true,
-      },
-      {
-        content: "Share notes",
-        assignee: "Michael",
-        dueDate: "May 16",
+        content: "Error loading action items",
+        assignee: null,
+        dueDate: null,
         complete: false,
       },
     ];
@@ -427,16 +465,24 @@ const MeetingDetails = () => {
                       sx={{ bgcolor: "background.paper" }}
                     />
                   )}
-                  <Chip
-                    icon={<People fontSize="small" />}
-                    label={
-                      Array.isArray(minutesData?.participants)
-                        ? minutesData.participants.join(", ")
-                        : minutesData?.participants || "Team members"
-                    }
-                    size="small"
-                    sx={{ bgcolor: "background.paper" }}
-                  />
+                  {minutesData?.participants && (
+                    <Chip
+                      icon={<People fontSize="small" />}
+                      label={
+                        Array.isArray(minutesData.participants)
+                          ? minutesData.participants.length > 3
+                            ? `${minutesData.participants
+                                .slice(0, 3)
+                                .join(", ")} +${
+                                minutesData.participants.length - 3
+                              }`
+                            : minutesData.participants.join(", ")
+                          : minutesData.participants
+                      }
+                      size="small"
+                      sx={{ bgcolor: "background.paper" }}
+                    />
+                  )}
                 </Box>
               </motion.div>
             </Box>
@@ -529,7 +575,7 @@ const MeetingDetails = () => {
             </Alert>
           )}
           <TabPanel value={activeTab} index={0}>
-            {!hasMinutesError ? (
+            {!hasMinutesError && (
               <Card
                 sx={{
                   borderRadius: 3,
@@ -566,65 +612,62 @@ const MeetingDetails = () => {
                             {formattedDate}, {formattedTime}
                           </Typography>
                         </Grid>
-                        {minutesData?.participants &&
-                          (!Array.isArray(minutesData.participants) ||
-                            minutesData.participants.length > 0) && (
-                            <Grid item xs={12} md={4}>
-                              <Typography
-                                variant="subtitle2"
-                                color="text.secondary"
-                                gutterBottom
-                              >
-                                Participants
-                              </Typography>
-                              <Typography variant="body1">
-                                {Array.isArray(minutesData.participants)
-                                  ? minutesData.participants.join(", ")
-                                  : minutesData.participants}
-                              </Typography>
-                            </Grid>
-                          )}
+                        {minutesData?.participants && (
+                          <Grid item xs={12} md={4}>
+                            <Typography
+                              variant="subtitle2"
+                              color="text.secondary"
+                              gutterBottom
+                            >
+                              Participants
+                            </Typography>
+                            <Typography variant="body1">
+                              {Array.isArray(minutesData.participants)
+                                ? minutesData.participants.join(", ")
+                                : minutesData.participants}
+                            </Typography>
+                          </Grid>
+                        )}
                       </Grid>
                     </Box>
-                    {minutesData.agenda[0] && (
+
+                    {minutesData.agenda && (
                       <Box sx={{ mb: 4 }}>
                         <Typography variant="h6" fontWeight={600} gutterBottom>
                           Agenda
                         </Typography>
                         <Box component="div">
-                          {Array.isArray(minutesData.agenda) ? (
-                            minutesData.agenda.map((item, index) => (
-                              <Typography
-                                key={index}
-                                variant="body1"
-                                component="p"
-                                sx={{
-                                  mb: 1,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  "&::before": {
-                                    content: '""',
-                                    display: "inline-block",
-                                    width: 6,
-                                    height: 6,
-                                    borderRadius: "50%",
-                                    bgcolor: theme.palette.primary.main,
-                                    mr: 2,
-                                  },
-                                }}
-                              >
-                                {item}
-                              </Typography>
-                            ))
-                          ) : (
-                            <Typography>{minutesData.agenda}</Typography>
-                          )}
+                          {(Array.isArray(minutesData.agenda)
+                            ? minutesData.agenda
+                            : [minutesData.agenda]
+                          ).map((item, index) => (
+                            <Typography
+                              key={index}
+                              variant="body1"
+                              component="p"
+                              sx={{
+                                mb: 1,
+                                display: "flex",
+                                alignItems: "center",
+                                "&::before": {
+                                  content: '""',
+                                  display: "inline-block",
+                                  width: 6,
+                                  height: 6,
+                                  borderRadius: "50%",
+                                  bgcolor: theme.palette.primary.main,
+                                  mr: 2,
+                                },
+                              }}
+                            >
+                              {item}
+                            </Typography>
+                          ))}
                         </Box>
                       </Box>
                     )}
                   </AnimatedSection>
                   {minutesData.keyPoints &&
-                    typeof minutesData.keyPoints === "object" &&
                     Object.keys(minutesData.keyPoints).length > 0 && (
                       <AnimatedSection
                         title="Key Discussion Points"
@@ -643,50 +686,51 @@ const MeetingDetails = () => {
                         )}
                       </AnimatedSection>
                     )}
-                  {minutesData.decisions &&
-                    Array.isArray(minutesData.decisions) &&
-                    minutesData.decisions.length > 0 && (
-                      <AnimatedSection
-                        title="Decisions Made"
-                        icon={<Lightbulb />}
-                        color={theme.palette.warning.main}
-                        delay={2}
+
+                  {minutesData.decisions && (
+                    <AnimatedSection
+                      title="Decisions Made"
+                      icon={<Lightbulb />}
+                      color={theme.palette.warning.main}
+                      delay={2}
+                    >
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: 3,
+                          bgcolor: alpha(theme.palette.warning.main, 0.05),
+                          border: "1px solid",
+                          borderColor: alpha(theme.palette.warning.main, 0.1),
+                          mb: 3,
+                        }}
                       >
-                        <Box
-                          sx={{
-                            p: 3,
-                            borderRadius: 3,
-                            bgcolor: alpha(theme.palette.warning.main, 0.05),
-                            border: "1px solid",
-                            borderColor: alpha(theme.palette.warning.main, 0.1),
-                            mb: 3,
-                          }}
-                        >
-                          <Box component="div">
-                            {minutesData.decisions.map((line, index) => (
-                              <Box
-                                key={index}
-                                sx={{
-                                  display: "flex",
-                                  mb: 2,
-                                  "&:last-child": { mb: 0 },
-                                }}
-                              >
-                                <CheckCircle
-                                  sx={{
-                                    color: theme.palette.success.main,
-                                    mr: 2,
-                                    mt: 0.3,
-                                    flexShrink: 0,
-                                  }}
-                                />
-                                <Typography variant="body1">{line} </Typography>
-                              </Box>
-                            ))}
+                        {(Array.isArray(minutesData.decisions)
+                          ? minutesData.decisions
+                          : [minutesData.decisions]
+                        ).map((line, index) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              display: "flex",
+                              mb: 2,
+                              "&:last-child": { mb: 0 },
+                            }}
+                          >
+                            <CheckCircle
+                              sx={{
+                                color: theme.palette.success.main,
+                                mr: 2,
+                                mt: 0.3,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Typography variant="body1">{line}</Typography>
                           </Box>
-                        </Box>
-                      </AnimatedSection>
-                    )}
+                        ))}
+                      </Box>
+                    </AnimatedSection>
+                  )}
+
                   {actionItems.length > 0 && (
                     <AnimatedSection
                       title="Action Items"
@@ -751,29 +795,35 @@ const MeetingDetails = () => {
                                   mt: 0.5,
                                 }}
                               >
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  Assigned:
-                                  <span style={{ fontWeight: 600 }}>
-                                    {item.assignee}
-                                  </span>
-                                </Typography>
-                                <Divider
-                                  orientation="vertical"
-                                  flexItem
-                                  sx={{ mx: 1, my: 0.5 }}
-                                />
-                                <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                >
-                                  Due:
-                                  <span style={{ fontWeight: 600 }}>
-                                    {item.dueDate}
-                                  </span>
-                                </Typography>
+                                {item.assignee && (
+                                  <>
+                                    <Typography
+                                      variant="caption"
+                                      color="text.secondary"
+                                    >
+                                      Assigned:{" "}
+                                      <span style={{ fontWeight: 600 }}>
+                                        {item.assignee}
+                                      </span>
+                                    </Typography>
+                                    <Divider
+                                      orientation="vertical"
+                                      flexItem
+                                      sx={{ mx: 1, my: 0.5 }}
+                                    />
+                                  </>
+                                )}
+                                {item.dueDate && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                  >
+                                    Due:{" "}
+                                    <span style={{ fontWeight: 600 }}>
+                                      {item.dueDate}
+                                    </span>
+                                  </Typography>
+                                )}
                               </Box>
                             </Box>
                             <Chip
@@ -787,34 +837,34 @@ const MeetingDetails = () => {
                       </Box>
                     </AnimatedSection>
                   )}
-                  {minutesData.nextSteps &&
-                    typeof minutesData.nextSteps === "string" && (
-                      <AnimatedSection
-                        title="Next Steps"
-                        icon={<Schedule />}
-                        color={theme.palette.secondary.main}
-                        delay={4}
-                      >
-                        <Typography variant="body1" component="div">
-                          {minutesData.nextSteps.split("\n").map(
-                            (line, index) =>
-                              line.trim() && (
-                                <Typography
-                                  key={index}
-                                  variant="body1"
-                                  component="p"
-                                  sx={{ mb: 1.5 }}
-                                >
-                                  {line}
-                                </Typography>
-                              )
-                          )}
-                        </Typography>
-                      </AnimatedSection>
-                    )}
+
+                  {minutesData.nextSteps && (
+                    <AnimatedSection
+                      title="Next Steps"
+                      icon={<Schedule />}
+                      color={theme.palette.secondary.main}
+                      delay={4}
+                    >
+                      <Typography variant="body1" component="div">
+                        {minutesData.nextSteps.split("\n").map(
+                          (line, index) =>
+                            line.trim() && (
+                              <Typography
+                                key={index}
+                                variant="body1"
+                                component="p"
+                                sx={{ mb: 1.5 }}
+                              >
+                                {line}
+                              </Typography>
+                            )
+                        )}
+                      </Typography>
+                    </AnimatedSection>
+                  )}
                 </CardContent>
               </Card>
-            ) : null}
+            )}
           </TabPanel>
           <TabPanel value={activeTab} index={1}>
             <Card
@@ -835,7 +885,6 @@ const MeetingDetails = () => {
                   <Typography variant="h5" fontWeight={600}>
                     Full Transcript
                   </Typography>
-
                 </Box>
                 {minutesData?.transcription ? (
                   <Box
@@ -867,9 +916,8 @@ const MeetingDetails = () => {
               </CardContent>
             </Card>
           </TabPanel>
-
           <TabPanel value={activeTab} index={2}>
-            {!hasMinutesError ? (
+            {!hasMinutesError && (
               <Card
                 sx={{
                   borderRadius: 3,
@@ -888,7 +936,9 @@ const MeetingDetails = () => {
                         <TimelinePoint
                           key={index}
                           time={`Task ${index + 1}`}
-                          content={`${item.content} (Assignee: ${item.assignee}, Due: ${item.dueDate})`}
+                          content={`${item.content}${
+                            item.assignee ? ` (Assignee: ${item.assignee})` : ""
+                          }${item.dueDate ? ` (Due: ${item.dueDate})` : ""}`}
                           type="action"
                           delay={index + 1}
                         />
@@ -901,9 +951,8 @@ const MeetingDetails = () => {
                   </Box>
                 </CardContent>
               </Card>
-            ) : null}
+            )}
           </TabPanel>
-
           <TabPanel value={activeTab} index={3}>
             <Card
               sx={{
@@ -938,15 +987,16 @@ const MeetingDetails = () => {
           sx: { mt: 1.5, borderRadius: 2, minWidth: 180 },
         }}
       >
-        {shareOptions.map((option) => (
+        {shareOptions?.map((option) => (
           <MenuItem
-            key={option.label}
+            key={option?.label}
             onClick={() => {
-              option.onClick();
+              option?.onClick();
               handleCloseShareMenu();
             }}
           >
-            <ListItemIcon>{option.icon}</ListItemIcon> {option.label}
+            <ListItemIcon>{option?.icon}</ListItemIcon>
+            <ListItemText primary={option?.label} />
           </MenuItem>
         ))}
       </Menu>
@@ -960,21 +1010,50 @@ const MeetingDetails = () => {
         }}
       >
         <MenuItem
-          onClick={handleDeleteMeeting}
+          onClick={() => {
+            setDeleteDialogOpen(true);
+            handleCloseActionsMenu();
+          }}
           sx={{ color: theme.palette.error.main }}
         >
           <ListItemIcon>
             <DeleteIcon fontSize="small" color="error" />
           </ListItemIcon>
-          Delete Meeting
+          <ListItemText primary="Delete Meeting" />
         </MenuItem>
       </Menu>
-
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="delete-meeting-dialog-title"
+        aria-describedby="delete-meeting-dialog-description"
+      >
+        <DialogTitle id="delete-meeting-dialog-title">
+          Delete Meeting
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="delete-meeting-dialog-description">
+            Are you sure you want to delete this meeting? This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleDeleteMeeting}
+            color="error"
+            variant="contained"
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={3000}
+        autoHideDuration={6000}
         onClose={() => setSnackbarOpen(false)}
         message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       />
     </Box>
   );

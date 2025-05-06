@@ -326,8 +326,8 @@ const NewMeeting = () => {
   const processingError = useMemo(
     () =>
       contextError &&
-        !contextError.startsWith("Transcription failed") &&
-        !contextError.startsWith("Recording Error")
+      !contextError.startsWith("Transcription failed") &&
+      !contextError.startsWith("Recording Error")
         ? contextError
         : null,
     [contextError]
@@ -408,30 +408,7 @@ const NewMeeting = () => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: "100vh",
-        position: "relative",
-        background: theme.palette.background.default,
-        pb: 8,
-      }}
-    >
-      <Box
-        sx={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: "50%",
-          background: `radial-gradient(circle at 20% 30%, ${alpha(
-            theme.palette.primary.main,
-            0.07
-          )} 0%, transparent 70%)`,
-          zIndex: 0,
-          pointerEvents: "none",
-        }}
-      />
-
+    <Box>
       <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, pt: 3 }}>
         <Box sx={{ mb: 4 }}>
           <Button
@@ -501,7 +478,7 @@ const NewMeeting = () => {
             </Step>
           </Stepper>
         </Box>
-        <Box sx={{ display: "flex", justifyContent: "center", minHeight: 400 }}>
+        <Box sx={{ display: "flex", justifyContent: "center" }}>
           {isMobile ? (
             <NewMeetingMobile {...viewProps} />
           ) : (
