@@ -118,8 +118,8 @@ const Footer = () => {
                 variant="body2"
                 sx={{ maxWidth: 320, textAlign: { xs: "center", md: "left" } }}
               >
-                MakeMyMinutes: Effortless meeting summaries powered by AI. Focus on
-                the conversation, let us handle the notes.
+                MakeMyMinutes: Effortless meeting summaries powered by AI. Focus
+                on the conversation, let us handle the notes.
               </Typography>
               <Stack direction="row" spacing={1.5}>
                 {socialLinks.map((social) => (
