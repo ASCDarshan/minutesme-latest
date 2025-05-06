@@ -142,11 +142,6 @@ const NewMeetingMobile = (props) => {
     { code: "gu-IN", name: "Gujarati" },
   ];
 
-  const getLanguageDisplayName = (code) => {
-    const language = languages.find((lang) => lang.code === code);
-    return language ? language.name : code;
-  };
-
   return (
     <Box
       sx={{
@@ -193,18 +188,18 @@ const NewMeetingMobile = (props) => {
                 bgcolor: contextIsRecording
                   ? alpha(theme.palette.error.main, 0.1)
                   : isReadyToProcess
-                    ? alpha(theme.palette.success.main, 0.1)
-                    : isUploading
-                      ? alpha(theme.palette.info.main, 0.1)
-                      : alpha(theme.palette.primary.main, 0.1),
+                  ? alpha(theme.palette.success.main, 0.1)
+                  : isUploading
+                  ? alpha(theme.palette.info.main, 0.1)
+                  : alpha(theme.palette.primary.main, 0.1),
                 borderBottom: "1px solid",
                 borderColor: contextIsRecording
                   ? alpha(theme.palette.error.main, 0.2)
                   : isReadyToProcess
-                    ? alpha(theme.palette.success.main, 0.2)
-                    : isUploading
-                      ? alpha(theme.palette.info.main, 0.2)
-                      : alpha(theme.palette.primary.main, 0.2),
+                  ? alpha(theme.palette.success.main, 0.2)
+                  : isUploading
+                  ? alpha(theme.palette.info.main, 0.2)
+                  : alpha(theme.palette.primary.main, 0.2),
               }}
             >
               {contextIsRecording ? (
@@ -417,10 +412,11 @@ const NewMeetingMobile = (props) => {
                         currentLanguage === language.code
                           ? alpha(theme.palette.primary.main, 0.08)
                           : "transparent",
-                      border: `1px solid ${currentLanguage === language.code
-                        ? theme.palette.primary.main
-                        : "transparent"
-                        }`,
+                      border: `1px solid ${
+                        currentLanguage === language.code
+                          ? theme.palette.primary.main
+                          : "transparent"
+                      }`,
                     }}
                   >
                     <ListItemIcon>
@@ -611,8 +607,8 @@ const NewMeetingMobile = (props) => {
               contextIsRecording
                 ? "Stop recording"
                 : isReadyToProcess
-                  ? "Process Audio"
-                  : "Start recording"
+                ? "Process Audio"
+                : "Start recording"
             }
             onClick={
               isReadyToProcess ? handleProcessRecording : toggleRecording
@@ -621,10 +617,10 @@ const NewMeetingMobile = (props) => {
               isReadyToProcess
                 ? !canProcess || isLoading || isUploading
                 : isLoading ||
-                isUploading ||
-                mediaRecorderStatus === "acquiring_media" ||
-                (!isMicrophoneAvailable && !audioBlob) ||
-                !speechRecognitionSupported
+                  isUploading ||
+                  mediaRecorderStatus === "acquiring_media" ||
+                  (!isMicrophoneAvailable && !audioBlob) ||
+                  !speechRecognitionSupported
             }
             sx={{
               position: "fixed",

@@ -175,16 +175,16 @@ const Header = () => {
                           position: "relative",
                           "&::after": isActive(item.path)
                             ? {
-                              content: '""',
-                              position: "absolute",
-                              bottom: 6,
-                              left: "50%",
-                              transform: "translateX(-50%)",
-                              width: 16,
-                              height: 3,
-                              borderRadius: 4,
-                              backgroundColor: theme.palette.primary.main,
-                            }
+                                content: '""',
+                                position: "absolute",
+                                bottom: 6,
+                                left: "50%",
+                                transform: "translateX(-50%)",
+                                width: 16,
+                                height: 3,
+                                borderRadius: 4,
+                                backgroundColor: theme.palette.primary.main,
+                              }
                             : {},
                         }}
                       >

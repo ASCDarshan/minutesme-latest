@@ -61,7 +61,7 @@ const TimelinePoint = ({ time, content, type, delay = 0 }) => {
   };
 
   const { icon, color, bgColor } = getTypeProps();
-  
+
   return (
     <Box ref={ref} sx={{ mb: 4, display: "flex" }}>
       <Box
