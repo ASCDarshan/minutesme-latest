@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useMeeting } from "../context/MeetingContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView, delay } from "framer-motion";
 import {
   Box,
   Button,
@@ -59,6 +59,7 @@ const Profile = () => {
   const theme = useTheme();
   const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [downloadDialog, setDownloadDialog] = useState(false);
   const [profileEditMode, setProfileEditMode] = useState(false);
   const [editedName, setEditedName] = useState("");
 
@@ -100,24 +101,21 @@ const Profile = () => {
 
     const averageDuration =
       totalMeetings > 0 ? Math.round(totalMinutes / totalMeetings) : 0;
-
-    // Calculate storage used (rough estimate)
-    // Assuming 1KB per 500 characters of text, plus metadata
     let storageUsed = 0;
     meetings.forEach((meeting) => {
       if (meeting.transcription) {
-        storageUsed += meeting.transcription.length / 500 + 5; // 5KB base per meeting
+        storageUsed += meeting.transcription.length / 500 + 5;
       } else {
-        storageUsed += 5; // Default 5KB if no transcription
+        storageUsed += 5;
       }
 
-      // Add storage for audio if available
+
       if (meeting.audioUrl) {
-        storageUsed += 500; // Rough estimate of 500KB per audio recording
+        storageUsed += 500;
       }
     });
 
-    // Convert to MB
+
     storageUsed = Math.round(storageUsed / 1024);
 
     const recentMeetings = [...meetings]
@@ -239,7 +237,7 @@ const Profile = () => {
           </Button>
         </motion.div>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={4} xs={12} >
           <Grid item xs={12} md={4}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -406,6 +404,7 @@ const Profile = () => {
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
+                        cursor: "pointer",
                         transition: "all 0.2s",
                         "&:hover": {
                           backgroundColor: alpha(
@@ -414,11 +413,13 @@ const Profile = () => {
                           ),
                         },
                       }}
-                      onClick={() => {
-                        alert(
-                          "This feature will be implemented in a future update"
-                        );
-                      }}
+                      onClick={() => setDownloadDialog(true)}
+
+                    // onClick={() => {
+                    //   alert(
+                    //     "This feature will be implemented in a future update"
+                    //   );
+                    // }}
                     >
                       <ListItemIcon sx={{ minWidth: 42 }}>
                         <Box
@@ -443,6 +444,7 @@ const Profile = () => {
                         primary="Download My Data"
                         secondary="Get a copy of all your data"
                         primaryTypographyProps={{ fontWeight: 500 }}
+                        cursor="pointer"
                       />
                     </ListItem>
                     <ListItem
@@ -450,6 +452,7 @@ const Profile = () => {
                       sx={{
                         py: 1.5,
                         borderRadius: 2,
+                        cursor: "pointer",
                         transition: "all 0.2s",
                         "&:hover": {
                           backgroundColor: alpha(
@@ -466,6 +469,7 @@ const Profile = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 1.5,
+                            cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -506,6 +510,7 @@ const Profile = () => {
                             width: 32,
                             height: 32,
                             borderRadius: 1.5,
+                            cursor: "pointer",
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
@@ -526,6 +531,7 @@ const Profile = () => {
                           fontWeight: 500,
                           color: "error.main",
                         }}
+                        sx={{ cursor: "pointer" }}
                       />
                     </ListItem>
                   </List>
@@ -571,16 +577,7 @@ const Profile = () => {
                       <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
                         Account Overview
                       </Typography>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
-                          <StatCard
-                            icon={<MicNone />}
-                            title="Recording Time"
-                            value={`${stats.totalMinutes} min`}
-                            color={theme.palette.primary.main}
-                            delay={1}
-                          />
-                        </Grid>
+                      <Grid container spacing={3} gap={3}>
                         <Grid item xs={12} md={4}>
                           <StatCard
                             icon={<Event />}
@@ -590,148 +587,96 @@ const Profile = () => {
                             delay={2}
                           />
                         </Grid>
-                        <Grid item xs={12} md={4}>
-                          <StatCard
-                            icon={<AccessTime />}
-                            title="Avg. Duration"
-                            value={`${stats.averageDuration} min`}
-                            color={theme.palette.info.main}
-                            delay={3}
-                          />
+
+                        <Grid item xs={12} md={8}>
+                          <Card
+                            elevation={0}
+                            sx={{
+                              borderRadius: 3,
+                              overflow: "hidden",
+                              background: theme.palette.background.paper,
+                              border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
+                              boxShadow: `0 10px 30px ${alpha(theme.palette.common.black, 0.07)}`,
+                            }}
+                          >
+                            <CardContent>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  mb: 3,
+                                  flexDirection: { xs: "column", sm: "row" },
+                                  gap: 5,
+                                }}
+                              >
+                                <Typography variant="h6" fontWeight={600}>
+                                  Storage Usage
+                                </Typography>
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    py: 0.5,
+                                    px: 1.5,
+                                    borderRadius: 5,
+                                    backgroundColor:
+                                      storagePercentage >= 80
+                                        ? alpha(theme.palette.warning.main, 0.1)
+                                        : alpha(theme.palette.success.main, 0.1),
+                                    color:
+                                      storagePercentage >= 80
+                                        ? theme.palette.warning.main
+                                        : theme.palette.success.main,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {storagePercentage.toFixed(0)}% Used
+                                </Typography>
+                              </Box>
+
+                              <Box >
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    mb: 1,
+                                    flexDirection: { xs: "column", sm: "row" },
+                                    gap: 0.5,
+                                  }}
+                                >
+                                  <Typography variant="body2" color="text.secondary">
+                                    {stats.storageUsed} MB Used
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    {storageLimit} MB Total
+                                  </Typography>
+                                </Box>
+                                <LinearProgress
+                                  variant="determinate"
+                                  value={storagePercentage}
+                                  sx={{
+                                    height: 8,
+                                    borderRadius: 4,
+                                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
+                                    "& .MuiLinearProgress-bar": {
+                                      borderRadius: 4,
+                                      background:
+                                        storagePercentage >= 80
+                                          ? `linear-gradient(90deg, ${theme.palette.warning.main}, ${theme.palette.warning.light})`
+                                          : `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+                                    },
+                                  }}
+                                />
+                              </Box>
+                            </CardContent>
+                          </Card>
                         </Grid>
                       </Grid>
+
                     </CardContent>
                   </Card>
                 </motion.div>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.3 }}
-                >
-                  <Card
-                    elevation={0}
-                    sx={{
-                      borderRadius: 3,
-                      overflow: "hidden",
-                      mb: 3,
-                      background: theme.palette.background.paper,
-                      border: `1px solid ${alpha(theme.palette.divider, 0.08)}`,
-                      boxShadow: `0 10px 30px ${alpha(
-                        theme.palette.common.black,
-                        0.07
-                      )}`,
-                    }}
-                  >
-                    <CardContent>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                          mb: 3,
-                        }}
-                      >
-                        <Typography variant="h6" fontWeight={600}>
-                          Storage Usage
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            py: 0.5,
-                            px: 1.5,
-                            borderRadius: 5,
-                            backgroundColor:
-                              storagePercentage >= 80
-                                ? alpha(theme.palette.warning.main, 0.1)
-                                : alpha(theme.palette.success.main, 0.1),
-                            color:
-                              storagePercentage >= 80
-                                ? theme.palette.warning.main
-                                : theme.palette.success.main,
-                            fontWeight: 600,
-                          }}
-                        >
-                          {storagePercentage.toFixed(0)}% Used
-                        </Typography>
-                      </Box>
-                      <Box sx={{ mb: 2 }}>
-                        <Box
-                          sx={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            mb: 1,
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            {stats.storageUsed} MB Used
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {storageLimit} MB Total
-                          </Typography>
-                        </Box>
-                        <LinearProgress
-                          variant="determinate"
-                          value={storagePercentage}
-                          sx={{
-                            height: 8,
-                            borderRadius: 4,
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              0.08
-                            ),
-                            "& .MuiLinearProgress-bar": {
-                              borderRadius: 4,
-                              background:
-                                storagePercentage >= 80
-                                  ? `linear-gradient(90deg, ${theme.palette.warning.main}, ${theme.palette.warning.light})`
-                                  : `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-                            },
-                          }}
-                        />
-                      </Box>
-                      {storagePercentage >= 80 ? (
-                        <Box
-                          sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            backgroundColor: alpha(
-                              theme.palette.warning.main,
-                              0.05
-                            ),
-                            border: `1px solid ${alpha(
-                              theme.palette.warning.main,
-                              0.2
-                            )}`,
-                            display: "flex",
-                            alignItems: "center",
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            <strong
-                              style={{ color: theme.palette.warning.main }}
-                            >
-                              Running low on storage.
-                            </strong>{" "}
-                            Consider upgrading your account for more space.
-                          </Typography>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            color="warning"
-                            sx={{ ml: "auto", borderRadius: 2 }}
-                          >
-                            Upgrade
-                          </Button>
-                        </Box>
-                      ) : (
-                        <Typography variant="body2" color="text.secondary">
-                          Your storage includes recordings, transcriptions, and
-                          meeting minutes.
-                        </Typography>
-                      )}
-                    </CardContent>
-                  </Card>
-                </motion.div>
+
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -956,6 +901,35 @@ const Profile = () => {
             sx={{ borderRadius: 2 }}
           >
             Delete Account
+          </Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog
+        open={downloadDialog}
+        onClose={() => setDownloadDialog(false)}
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            maxWidth: "400px",
+            width: "100%",
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>Download Your Data</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            This feature will be implemented in a future update
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button
+            onClick={() => setDownloadDialog(false)}
+            color="primary"
+            variant="contained"
+            sx={{ borderRadius: 2 }}
+          >
+            Okay
           </Button>
         </DialogActions>
       </Dialog>

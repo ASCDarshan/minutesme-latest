@@ -434,13 +434,6 @@ const Header = () => {
           </ListItemIcon>
           My Profile
         </MenuItem>
-        <MenuItem onClick={handleUserMenuClose} sx={{ py: 1.5 }}>
-          <ListItemIcon>
-            <Settings fontSize="small" />
-          </ListItemIcon>
-          Settings
-        </MenuItem>
-        <Divider />
         <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
           <ListItemIcon>
             <Logout fontSize="small" color="error" />

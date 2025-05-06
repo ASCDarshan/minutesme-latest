@@ -1030,24 +1030,6 @@ const MeetingRecorder = () => {
               </Box>
             </Box>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ whiteSpace: "nowrap" }}
-              >
-                Upload Recording
-              </Typography>
-              <Tooltip title="Upload audio file (MP3 format only)">
-                {" "}
-                <IconButton
-                  onClick={handleUploadClick}
-                  disabled={contextIsRecording || isLoading || isUploading}
-                  color="primary"
-                  size={isMobile ? "small" : "medium"}
-                >
-                  <FileUploadIcon />
-                </IconButton>
-              </Tooltip>
               <Tooltip title="Meeting tips">
                 <IconButton
                   onClick={() => setInstructionsOpen(true)}
@@ -1121,8 +1103,10 @@ const MeetingRecorder = () => {
               <Box
                 sx={{
                   display: "flex",
-                  flexDirection: "column",
+                  flexDirection: "row",
                   alignItems: "center",
+                  justifyContent: "center",
+                  gap: 2,
                   mb: 4,
                 }}
               >
@@ -1207,6 +1191,55 @@ const MeetingRecorder = () => {
                             : "Start Recording"}
                   </Button>
                 </Box>
+                <Box sx={{ mb: 1 }}>
+                  <Tooltip title="Upload audio file (MP3 format only)">
+                    <span>
+                      <Button
+                        component="label"
+                        sx={{
+                          borderRadius: 20,
+                          bgcolor: isUploading
+                            ? alpha(theme.palette.info.main, 0.1)
+                            : alpha(theme.palette.primary.main, 0.1),
+                          color: isUploading ? "info.dark" : "primary.main",
+                          px: 3,
+                          py: 0.5,
+                          border: "1px solid",
+                          borderColor: isUploading
+                            ? alpha(theme.palette.info.main, 0.2)
+                            : alpha(theme.palette.primary.main, 0.2),
+                          textTransform: "none",
+                          fontWeight: 600,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 1,
+                          "&:hover": {
+                            bgcolor: isUploading
+                              ? alpha(theme.palette.info.main, 0.2)
+                              : alpha(theme.palette.primary.main, 0.2),
+                          },
+                          pointerEvents: isUploading ? "none" : "auto",
+                        }}
+                        disabled={isUploading || isLoading}
+                        title="Upload audio file (MP3 format only)"
+                      >
+                        {isUploading || isLoading ? (
+                          <CircularProgress size={16} color="inherit" sx={{ mr: 1 }} />
+                        ) : (
+                          <FileUploadIcon fontSize="small" sx={{ mr: 1 }} />
+                        )}
+                        {isUploading ? "Processing Upload..." : "Upload Recording"}
+                        <input
+                          type="file"
+                          accept="audio/mpeg"
+                          hidden
+                          onChange={handleUploadClick}
+                        />
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </Box>
+
                 {(contextIsRecording ||
                   recordingStoppedManually ||
                   isUploading) && (

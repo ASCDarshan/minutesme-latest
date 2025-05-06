@@ -258,7 +258,7 @@ const NewMeetingMobile = (props) => {
                 alignItems: "center",
               }}
             >
-              <Box sx={{ display: "flex", gap: 1 }}>
+              <Box sx={{ display: "flex", gap: 5 }}>
                 <Tooltip title="Select language">
                   <Button
                     variant="outlined"
@@ -268,29 +268,44 @@ const NewMeetingMobile = (props) => {
                     sx={{
                       borderRadius: 4,
                       minWidth: 40,
-                      p: "4px 8px",
+                      p: "4px 14px",
                     }}
                     aria-label="Select language"
                   >
                     <LanguageIcon fontSize="small" />
                   </Button>
                 </Tooltip>
-                <Tooltip title="Upload audio file (MP3 format only)">
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleUploadClick}
-                    disabled={contextIsRecording || isLoading || isUploading}
-                    sx={{
-                      borderRadius: 4,
-                      minWidth: 40,
-                      p: "4px 8px",
-                    }}
-                    aria-label="Upload audio file"
-                  >
-                    <FileUploadIcon fontSize="small" />
-                  </Button>
-                </Tooltip>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Tooltip title="Upload audio file (MP3 format only)">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={handleUploadClick}
+                      disabled={contextIsRecording || isLoading || isUploading}
+                      sx={{
+                        borderRadius: 4,
+                        minWidth: 40,
+                        p: "4px 8px",
+                      }}
+                      aria-label="Upload audio file"
+                    >
+                      <FileUploadIcon fontSize="small" />
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ whiteSpace: "nowrap", p: "4px 8px" }}
+                      >
+                        Upload Recording
+                      </Typography>
+                    </Button>
+                  </Tooltip>
+                </Box>
               </Box>
               <Box sx={{ display: "flex", gap: 1 }}>
                 <Tooltip title="Meeting tips">

@@ -174,7 +174,7 @@ const Login = () => {
   const { login, currentUser, loading, error } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [showFeatures, setShowFeatures] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(true);
 
   if (currentUser) {
     return <Navigate to="/dashboard" />;
