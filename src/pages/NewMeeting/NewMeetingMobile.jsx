@@ -1,4 +1,15 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import SpeechRecognition, {
+  useSpeechRecognition,
+} from "react-speech-recognition";
+import { useMeeting } from "../../context/MeetingContext"; // ASSUMING PATH
+import { motion } from "framer-motion";
 import {
   Box,
   Grid,
@@ -20,10 +31,10 @@ import {
   Drawer,
   Tooltip,
   alpha,
+  CircularProgress,
+  Snackbar,
+  useTheme,
 } from "@mui/material";
-import { motion } from "framer-motion";
-import LiveTranscriptCard from "./LiveTranscriptCard";
-import ProcessingView from "./ProcessingView";
 import {
   PlayArrow as PlayIcon,
   Mic as MicIcon,
@@ -35,147 +46,578 @@ import {
   Close as CloseIcon,
   Check as CheckMarkIcon,
   FileUpload as FileUploadIcon,
+  ContentCopy as CopyIcon,
+  Share as ShareIcon,
+  // Save as SaveIcon, // ProcessingView might have its own icons
+  // Restore as RestoreIcon,
+  // Done as DoneIcon,
 } from "@mui/icons-material";
 
-const NewMeetingMobile = (props) => {
+import LiveTranscriptCard from "./LiveTranscriptCard"; // ASSUMING PATH
+import ProcessingView from "./ProcessingView"; // ASSUMING PATH
+
+const NewMeetingMobile = () => {
+  const theme = useTheme();
+
   const {
-    activeStep,
-    cardElevation,
-    cardBorderRadius,
-    cardBoxShadow,
-    theme,
-    contextIsRecording,
     mediaRecorderStatus,
-    toggleRecording,
-    recordingTime,
+    isRecording: contextIsRecording,
+    startMeeting,
+    endMeeting,
+    isUploading: contextIsUploading,
+    handleFileUpload: contextHandleFileUpload,
     audioBlob,
-    handleProcessRecording,
-    recordingError,
-    isMicrophoneAvailable,
-    speechRecognitionSupported,
-    listening,
-    currentLanguage,
-    handleLanguageChange,
-    handleCopy,
-    handleShare,
-    transcript,
-    displayedTranscript,
-    keywordsToHighlight,
-    highlightColor,
-    liveTranscriptEndRef,
-    finalTranscription,
-    isTranscribing,
-    finalTranscriptionError,
-    contextError,
-    transcribeMeetingAudio,
-    handleGenerateAndSave,
-    meetingTitle,
-    setMeetingTitle,
-    isProcessingMinutes,
-    processingError,
-    handleRecordAgain,
-    isUploading,
-    handleFileUpload,
-    isLoading,
-    canProcess,
-  } = props;
+    transcription: finalTranscriptionFromContext,
+    isTranscribing: contextIsTranscribing,
+    isGeneratingMinutes,
+    loading: contextLoading,
+    error: contextError,
+    transcribeMeetingAudio: contextTranscribeMeetingAudio,
+    generateAndSaveMeeting: contextGenerateAndSaveMeeting,
+    clearMeetingError, // Assuming context provides a way to clear errors
+    resetMeetingContextState, // Assuming context provides a way to reset its state for a new recording
+  } = useMeeting();
+
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [activeStep, setActiveStep] = useState(0);
+  const [meetingTitle, setMeetingTitle] = useState("");
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [recordingStoppedManually, setRecordingStoppedManually] =
+    useState(false);
+  const [currentLanguage, setCurrentLanguage] = useState("en-US");
 
   const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
   const [tipsDrawerOpen, setTipsDrawerOpen] = useState(false);
-  const [isReadyToProcess, setIsReadyToProcess] = useState(false);
 
+  const timerRef = useRef(null);
+  const hasProcessedRef = useRef(false);
+  const liveTranscriptEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
+  const {
+    interimTranscript,
+    finalTranscript: liveFinalTranscript,
+    listening,
+    resetTranscript,
+    browserSupportsSpeechRecognition,
+    isMicrophoneAvailable,
+  } = useSpeechRecognition();
+
+  const keywordsToHighlight = useMemo(
+    () => [
+      "agenda",
+      "next steps",
+      "action plan",
+      "action item",
+      "goals",
+      "summary",
+      "summarize",
+      "participants",
+      "decision",
+      "minutes",
+      "deadline",
+      "follow up",
+      "issue",
+      "problem",
+      "solution",
+      "proposal",
+      "vote",
+      "assign",
+      "task",
+      "milestone",
+      "blocker",
+    ],
+    []
+  );
+
+  const highlightColor = useMemo(
+    () => alpha(theme.palette.secondary.main, 0.25),
+    [theme]
+  );
+
+  const displayedTranscript = useMemo(
+    () =>
+      liveFinalTranscript + (interimTranscript ? " " + interimTranscript : ""),
+    [liveFinalTranscript, interimTranscript]
+  );
+
+  const speechRecognitionSupported = useMemo(
+    () => browserSupportsSpeechRecognition,
+    [browserSupportsSpeechRecognition]
+  );
+
+  const isLoading = useMemo(
+    () =>
+      contextLoading ||
+      contextIsUploading ||
+      (contextIsRecording && mediaRecorderStatus === "acquiring_media"),
+    [
+      contextLoading,
+      contextIsUploading,
+      contextIsRecording,
+      mediaRecorderStatus,
+    ]
+  );
+
+  const isReadyToProcess = useMemo(() => {
+    return (
+      !!audioBlob &&
+      !contextIsRecording &&
+      !contextIsUploading &&
+      !isLoading &&
+      !contextIsTranscribing &&
+      !isGeneratingMinutes
+    );
+  }, [
+    audioBlob,
+    contextIsRecording,
+    contextIsUploading,
+    isLoading,
+    contextIsTranscribing,
+    isGeneratingMinutes,
+  ]);
+
+  const canProcess = useMemo(() => {
+    const hasData = !!audioBlob;
+    const isIdle =
+      !contextIsRecording &&
+      !contextIsTranscribing &&
+      !isGeneratingMinutes &&
+      !isLoading &&
+      !contextIsUploading;
+    return hasData && isIdle;
+  }, [
+    audioBlob,
+    contextIsRecording,
+    contextIsTranscribing,
+    isGeneratingMinutes,
+    isLoading,
+    contextIsUploading,
+  ]);
+
+  const isProcessingAny = useMemo(
+    () =>
+      contextIsTranscribing ||
+      isGeneratingMinutes ||
+      isLoading ||
+      contextIsUploading,
+    [contextIsTranscribing, isGeneratingMinutes, isLoading, contextIsUploading]
+  );
+
+  const showMinuteContent = useMemo(
+    () =>
+      activeStep === 1 &&
+      !!finalTranscriptionFromContext &&
+      !contextIsTranscribing,
+    [activeStep, finalTranscriptionFromContext, contextIsTranscribing]
+  );
+
   useEffect(() => {
-    if (audioBlob && !contextIsRecording && !isUploading) {
-      setIsReadyToProcess(true);
+    if (contextIsRecording && mediaRecorderStatus === "recording") {
+      timerRef.current = setInterval(
+        () => setRecordingTime((prev) => prev + 1),
+        1000
+      );
     } else {
-      setIsReadyToProcess(false);
+      clearInterval(timerRef.current);
     }
-  }, [audioBlob, contextIsRecording, isUploading]);
+    return () => clearInterval(timerRef.current);
+  }, [contextIsRecording, mediaRecorderStatus]);
 
-  const handleUploadClick = useCallback(() => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
+  useEffect(() => {
+    if (contextError) {
+      // Avoid showing generic "Error: null" or "Error: undefined"
+      const errorMessage =
+        contextError === "string"
+          ? contextError
+          : contextError.message || "An unexpected error occurred.";
+      setSnackbarMessage(`Error: ${errorMessage}`);
+      setSnackbarOpen(true);
+      if (typeof clearMeetingError === "function") clearMeetingError(); // Clear error after showing
     }
-  }, []);
+  }, [contextError, clearMeetingError]);
 
-  const handleFileSelected = useCallback(
+  useEffect(() => {
+    if (activeStep === 0 && listening && liveTranscriptEndRef.current) {
+      liveTranscriptEndRef.current.scrollIntoView({
+        behavior: "smooth",
+        block: "end",
+      });
+    }
+  }, [displayedTranscript, activeStep, listening]);
+
+  useEffect(() => {
+    const startListening = async () => {
+      try {
+        await SpeechRecognition.startListening({
+          continuous: true,
+          language: currentLanguage,
+        });
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        setSnackbarMessage("Could not start microphone for live transcript.");
+        setSnackbarOpen(true);
+      }
+    };
+
+    if (
+      contextIsRecording &&
+      mediaRecorderStatus === "recording" &&
+      speechRecognitionSupported &&
+      isMicrophoneAvailable &&
+      !listening
+    ) {
+      resetTranscript(); // Clear previous live transcript before starting new one
+      startListening();
+    } else if (
+      (!contextIsRecording ||
+        !isMicrophoneAvailable ||
+        !speechRecognitionSupported ||
+        mediaRecorderStatus !== "recording") &&
+      listening
+    ) {
+      SpeechRecognition.stopListening();
+    }
+  }, [
+    contextIsRecording,
+    mediaRecorderStatus,
+    speechRecognitionSupported,
+    isMicrophoneAvailable,
+    listening,
+    currentLanguage,
+    resetTranscript,
+  ]);
+
+  useEffect(() => {
+    const shouldTranscribe =
+      activeStep === 1 &&
+      audioBlob &&
+      !finalTranscriptionFromContext &&
+      !contextIsTranscribing &&
+      !contextError?.includes("Transcription failed");
+    if (shouldTranscribe && hasProcessedRef.current) {
+      contextTranscribeMeetingAudio();
+    }
+  }, [
+    activeStep,
+    audioBlob,
+    finalTranscriptionFromContext,
+    contextIsTranscribing,
+    contextError,
+    contextTranscribeMeetingAudio,
+  ]);
+
+  const handleFullResetForNewRecording = useCallback(() => {
+    if (typeof resetMeetingContextState === "function") {
+      resetMeetingContextState(); // Clears audioBlob, transcription, etc. in context
+    }
+    resetTranscript();
+    setRecordingTime(0);
+    setActiveStep(0);
+    setMeetingTitle("");
+    setRecordingStoppedManually(false);
+    hasProcessedRef.current = false;
+    // Any other local state that needs reset for a brand new session
+  }, [resetTranscript, resetMeetingContextState]);
+
+  const toggleRecording = useCallback(() => {
+    if (
+      !contextIsRecording &&
+      mediaRecorderStatus !== "acquiring_media" &&
+      !contextIsUploading
+    ) {
+      handleFullResetForNewRecording(); // Ensure a clean state
+      startMeeting();
+    } else if (contextIsRecording) {
+      endMeeting();
+      setRecordingStoppedManually(true);
+    }
+  }, [
+    contextIsRecording,
+    mediaRecorderStatus,
+    contextIsUploading,
+    startMeeting,
+    endMeeting,
+    handleFullResetForNewRecording,
+  ]);
+
+  const handleLanguageChangeInternal = useCallback(
+    async (langCode) => {
+      setCurrentLanguage(langCode);
+      if (listening) {
+        await SpeechRecognition.stopListening();
+        resetTranscript();
+        try {
+          await SpeechRecognition.startListening({
+            continuous: true,
+            language: langCode,
+          });
+        } catch (error) {
+          console.error(
+            "Error restarting speech recognition with new language:",
+            error
+          );
+          setSnackbarMessage("Error applying new language to live transcript.");
+          setSnackbarOpen(true);
+        }
+      }
+      setLanguageDialogOpen(false);
+    },
+    [listening, resetTranscript]
+  );
+
+  const handleUploadClickInternal = useCallback(
+    () => fileInputRef.current?.click(),
+    []
+  );
+
+  const handleFileSelectedInternal = useCallback(
     async (event) => {
       const file = event.target.files?.[0];
       if (!file) return;
       event.target.value = null;
+      handleFullResetForNewRecording(); // Reset for the new file
 
-      const success = await handleFileUpload(file);
-
+      const success = await contextHandleFileUpload(file);
       if (success) {
+        setRecordingStoppedManually(true); // So "Process" button becomes available
+        // Simulate recordingTime based on audio duration if possible, or leave as 0
+        // For simplicity, we assume audioBlob update will trigger isReadyToProcess via useMemo
+        setSnackbarMessage("File ready. Tap 'Process' to continue.");
+      } else if (!contextError) {
+        // If context didn't set an error, show a generic one
+        setSnackbarMessage("File upload failed.");
+      }
+      setSnackbarOpen(true); // Show snackbar for success or non-contextual failure
+    },
+    [contextHandleFileUpload, handleFullResetForNewRecording, contextError]
+  );
+
+  const handleCopyToClipboard = useCallback(async (textToCopy) => {
+    if (!textToCopy) {
+      setSnackbarMessage("Nothing to copy!");
+      setSnackbarOpen(true);
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(textToCopy);
+      setSnackbarMessage("Copied!");
+    } catch (err) {
+      console.error("Copy failed:", err);
+      setSnackbarMessage("Copy failed.");
+    }
+    setSnackbarOpen(true);
+  }, []);
+
+  const handleShareTranscript = useCallback(
+    async (textToShare, title = "Meeting Transcript") => {
+      if (!textToShare) {
+        setSnackbarMessage("Nothing to share!");
+        setSnackbarOpen(true);
+        return;
+      }
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text: textToShare });
+        } catch (err) {
+          if (err.name !== "AbortError") {
+            console.error("Share failed:", err);
+            setSnackbarMessage("Share failed.");
+            setSnackbarOpen(true);
+          }
+        }
       } else {
+        setSnackbarMessage("Share not supported. Copy instead.");
+        setSnackbarOpen(true);
       }
     },
-    [handleFileUpload]
+    []
+  );
+
+  const handleProcessRecordingInternal = useCallback(() => {
+    if (canProcess) {
+      setActiveStep(1);
+      hasProcessedRef.current = true;
+      if (listening) SpeechRecognition.stopListening();
+    } else {
+      let msg = "Cannot process audio yet.";
+      if (!audioBlob) msg = "No audio available to process.";
+      else if (isProcessingAny) msg = "Processing is already in progress.";
+      setSnackbarMessage(msg);
+      setSnackbarOpen(true);
+    }
+  }, [canProcess, audioBlob, isProcessingAny, listening]);
+
+  const handleGenerateAndSaveInternal = useCallback(async () => {
+    if (!meetingTitle.trim()) {
+      setSnackbarMessage("Please enter a meeting title.");
+      setSnackbarOpen(true);
+      return;
+    }
+    if (!finalTranscriptionFromContext && !contextIsTranscribing) {
+      setSnackbarMessage("Transcription not complete.");
+      setSnackbarOpen(true);
+      return;
+    }
+    if (isProcessingAny) {
+      setSnackbarMessage("Please wait for current tasks to finish.");
+      setSnackbarOpen(true);
+      return;
+    }
+
+    const success = await contextGenerateAndSaveMeeting(meetingTitle);
+    setSnackbarMessage(
+      success
+        ? "Minutes generated and saved!"
+        : contextError || "Failed to generate minutes."
+    );
+    setSnackbarOpen(true);
+    if (success) {
+      // Optionally reset or navigate
+      // handleFullResetForNewRecording(); // If you want to go back to step 0 ready for new recording
+    }
+  }, [
+    meetingTitle,
+    finalTranscriptionFromContext,
+    contextIsTranscribing,
+    isProcessingAny,
+    contextGenerateAndSaveMeeting,
+    contextError,
+  ]);
+
+  const handleRecordAgainInternal = useCallback(() => {
+    handleFullResetForNewRecording();
+    // No need to call toggleRecording here, user will tap the record button again
+  }, [handleFullResetForNewRecording]);
+
+  const handleSnackbarClose = useCallback((event, reason) => {
+    if (reason === "clickaway") return;
+    setSnackbarOpen(false);
+  }, []);
+
+  const categorizedRecordingError = useMemo(
+    () =>
+      contextError?.startsWith("Recording Error:")
+        ? contextError.replace("Recording Error: ", "")
+        : null,
+    [contextError]
+  );
+  const categorizedFinalTranscriptionError = useMemo(
+    () =>
+      contextError?.startsWith("Transcription failed") ? contextError : null,
+    [contextError]
+  );
+  const categorizedProcessingError = useMemo(
+    () =>
+      contextError &&
+      !categorizedRecordingError &&
+      !categorizedFinalTranscriptionError
+        ? contextError
+        : null,
+    [
+      contextError,
+      categorizedRecordingError,
+      categorizedFinalTranscriptionError,
+    ]
+  );
+
+  const formatTime = (seconds) =>
+    `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(
+      seconds % 60
+    ).padStart(2, "0")}`;
+
+  const languages = useMemo(
+    () => [
+      { code: "en-US", name: "English (US)" },
+      { code: "en-GB", name: "English (UK)" },
+      { code: "hi-IN", name: "Hindi" },
+      { code: "gu-IN", name: "Gujarati" },
+      { code: "es-ES", name: "Spanish" },
+      { code: "fr-FR", name: "French" },
+      { code: "de-DE", name: "German" },
+      { code: "ja-JP", name: "Japanese" },
+    ],
+    []
   );
 
   const getStatusText = () => {
-    if (isLoading && !isUploading && !contextIsRecording) return "Loading...";
-    if (isUploading) return "Processing upload...";
+    if (
+      isLoading &&
+      !contextIsUploading &&
+      !contextIsRecording &&
+      !isReadyToProcess &&
+      !listening
+    )
+      return "Loading...";
+    if (contextIsUploading) return "Processing upload...";
     if (mediaRecorderStatus === "acquiring_media")
-      return "Requesting microphone...";
-    if (!speechRecognitionSupported) return "Speech recognition not supported";
-    if (!isMicrophoneAvailable && !audioBlob) return "Microphone unavailable";
-    if (isReadyToProcess) return "Audio ready. Tap Process to continue.";
+      return "Connecting to microphone...";
+    if (contextIsRecording && mediaRecorderStatus === "failed")
+      return "Mic connection failed. Check permissions.";
+    if (!speechRecognitionSupported && !audioBlob && !contextIsRecording)
+      return "Live transcript not supported by browser.";
+    if (!isMicrophoneAvailable && !audioBlob && !contextIsRecording)
+      return "Microphone unavailable or access denied.";
+    if (isReadyToProcess)
+      return `Audio ready (${formatTime(recordingTime || 0)}). Tap Process.`;
+    if (contextIsRecording && listening)
+      return "Listening for live transcript...";
+    if (contextIsRecording && !listening && mediaRecorderStatus === "recording")
+      return "Recording... (Live transcript pending or mic issues)";
+    if (contextIsRecording) return "Recording in progress...";
     return "Tap record or upload file";
   };
   const statusText = getStatusText();
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-      .toString()
-      .padStart(2, "0")}`;
-  };
+  const cardElevation = 1;
+  const cardBorderRadius = "12px";
+  const cardBoxShadow = theme.shadows[1];
 
-  const languages = [
-    { code: "en-US", name: "English (US)" },
-    { code: "en-GB", name: "English (UK)" },
-    { code: "hi-IN", name: "Hindi" },
-    { code: "gu-IN", name: "Gujarati" },
-  ];
+  const pulsateKeyframesSx = {
+    "@keyframes pulsateFab": {
+      /* ... as defined before ... */
+    },
+    "@keyframes pulsateChip": {
+      /* ... as defined before ... */
+    },
+  };
 
   return (
     <Box
       sx={{
         width: "100%",
         position: "relative",
-        pb: 10,
+        pb: 12,
+        ...pulsateKeyframesSx,
       }}
     >
       <input
         ref={fileInputRef}
         type="file"
-        accept="audio/webm,audio/ogg,audio/wav,audio/mpeg,audio/mp4,audio/aac,audio/flac,.mp3,.m4a,.wav"
-        onChange={handleFileSelected}
+        accept="audio/*"
+        onChange={handleFileSelectedInternal}
         style={{ display: "none" }}
       />
 
       {activeStep === 0 && (
         <motion.div
-          key="step0-mobile-top-record"
+          key="step0-mobile-view"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: 0.3 }}
         >
           <Paper
             elevation={2}
             sx={{
               width: "100%",
               mb: 2,
-              borderRadius: 2,
+              borderRadius: "12px",
               overflow: "hidden",
               position: "sticky",
               top: 0,
-              zIndex: 10,
+              zIndex: 1100,
             }}
           >
             <Box
@@ -185,21 +627,22 @@ const NewMeetingMobile = (props) => {
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
+                minHeight: 40,
                 bgcolor: contextIsRecording
-                  ? alpha(theme.palette.error.main, 0.1)
+                  ? alpha(theme.palette.error.light, 0.15)
                   : isReadyToProcess
-                  ? alpha(theme.palette.success.main, 0.1)
-                  : isUploading
-                  ? alpha(theme.palette.info.main, 0.1)
-                  : alpha(theme.palette.primary.main, 0.1),
+                  ? alpha(theme.palette.success.light, 0.15)
+                  : contextIsUploading
+                  ? alpha(theme.palette.info.light, 0.15)
+                  : alpha(theme.palette.primary.light, 0.15),
                 borderBottom: "1px solid",
                 borderColor: contextIsRecording
-                  ? alpha(theme.palette.error.main, 0.2)
+                  ? alpha(theme.palette.error.main, 0.3)
                   : isReadyToProcess
-                  ? alpha(theme.palette.success.main, 0.2)
-                  : isUploading
-                  ? alpha(theme.palette.info.main, 0.2)
-                  : alpha(theme.palette.primary.main, 0.2),
+                  ? alpha(theme.palette.success.main, 0.3)
+                  : contextIsUploading
+                  ? alpha(theme.palette.info.main, 0.3)
+                  : alpha(theme.palette.primary.main, 0.3),
               }}
             >
               {contextIsRecording ? (
@@ -207,137 +650,146 @@ const NewMeetingMobile = (props) => {
                   icon={<RecordIcon fontSize="small" />}
                   label={`Recording: ${formatTime(recordingTime)}`}
                   color="error"
-                  variant="outlined"
                   size="small"
                   sx={{
-                    borderRadius: 4,
-                    "& .MuiChip-icon": {
-                      color: theme.palette.error.main,
-                      animation: "pulse 1.5s infinite",
-                    },
-                    "@keyframes pulse": {
-                      "0%, 100%": { opacity: 1 },
-                      "50%": { opacity: 0.6 },
-                    },
+                    borderRadius: "16px",
+                    fontWeight: 500,
+                    animation: "$pulsateChip 1.5s infinite ease-out",
                   }}
                 />
               ) : isReadyToProcess ? (
                 <Chip
                   icon={<CheckMarkIcon fontSize="small" />}
-                  label={`Recorded: ${formatTime(recordingTime)}`}
+                  label={`Ready: ${formatTime(recordingTime || 0)}`}
                   color="success"
-                  variant="outlined"
                   size="small"
-                  sx={{ borderRadius: 4 }}
+                  sx={{ borderRadius: "16px", fontWeight: 500 }}
                 />
-              ) : isUploading ? (
+              ) : contextIsUploading ? (
                 <Chip
-                  icon={<CircularProgress size={16} color="info" />}
-                  label={`Uploading...`}
+                  icon={<CircularProgress size={16} color="inherit" />}
+                  label="Uploading..."
                   color="info"
-                  variant="outlined"
                   size="small"
-                  sx={{ borderRadius: 4 }}
+                  sx={{ borderRadius: "16px", fontWeight: 500 }}
                 />
               ) : (
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Ready to Record/Upload
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 500, color: "text.secondary" }}
+                >
+                  Ready to Record / Upload
                 </Typography>
               )}
             </Box>
             <Box
               sx={{
                 p: 1.5,
+                pt: 1,
+                pb: 1,
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
               }}
             >
-              <Box sx={{ display: "flex", gap: 5 }}>
+              <Box sx={{ display: "flex", gap: { xs: 0.5, sm: 1 } }}>
                 <Tooltip title="Select language">
                   <Button
                     variant="outlined"
                     size="small"
                     onClick={() => setLanguageDialogOpen(true)}
-                    disabled={listening || contextIsRecording || isUploading}
+                    disabled={
+                      listening ||
+                      contextIsRecording ||
+                      contextIsUploading ||
+                      isLoading
+                    }
                     sx={{
-                      borderRadius: 4,
-                      minWidth: 40,
-                      p: "4px 14px",
+                      borderRadius: "16px",
+                      minWidth: { xs: 38, sm: 40 },
+                      p: { xs: "4px 8px", sm: "4px 12px" },
                     }}
-                    aria-label="Select language"
                   >
                     <LanguageIcon fontSize="small" />
                   </Button>
                 </Tooltip>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Tooltip title="Upload audio file (MP3 format only)">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      onClick={handleUploadClick}
-                      disabled={contextIsRecording || isLoading || isUploading}
-                      sx={{
-                        borderRadius: 4,
-                        minWidth: 40,
-                        p: "4px 8px",
-                      }}
-                      aria-label="Upload audio file"
-                    >
-                      <FileUploadIcon fontSize="small" />
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{ whiteSpace: "nowrap", p: "4px 8px" }}
-                      >
-                        Upload Recording
-                      </Typography>
-                    </Button>
-                  </Tooltip>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1 }}>
-                <Tooltip title="Meeting tips">
-                  <IconButton
-                    color="primary"
-                    onClick={() => setTipsDrawerOpen(true)}
+                <Tooltip title="Upload audio file">
+                  <Button
+                    variant="outlined"
                     size="small"
+                    onClick={handleUploadClickInternal}
+                    disabled={
+                      contextIsRecording || isLoading || contextIsUploading
+                    }
                     sx={{
-                      border: `1px solid ${alpha(
-                        theme.palette.primary.main,
-                        0.3
-                      )}`,
-                      borderRadius: 2,
+                      borderRadius: "16px",
+                      minWidth: { xs: 38, sm: 40 },
+                      p: "4px 8px",
+                      display: "flex",
+                      alignItems: "center",
                     }}
                   >
-                    <TipsIcon fontSize="small" />
-                  </IconButton>
+                    <FileUploadIcon
+                      fontSize="small"
+                      sx={{ mr: { xs: 0, sm: 0.5 } }}
+                    />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: { xs: "none", sm: "block" },
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      Upload Recording
+                    </Typography>
+                  </Button>
                 </Tooltip>
               </Box>
+              <Tooltip title="Meeting tips">
+                <IconButton
+                  color="primary"
+                  onClick={() => setTipsDrawerOpen(true)}
+                  size="small"
+                  sx={{
+                    border: `1px solid ${alpha(
+                      theme.palette.primary.main,
+                      0.3
+                    )}`,
+                    borderRadius: "16px",
+                  }}
+                >
+                  <TipsIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
             </Box>
           </Paper>
-          <Box sx={{ textAlign: "center", my: 2, px: 2 }}>
-            <Typography variant="body2" color="text.secondary">
+
+          <Box sx={{ textAlign: "center", my: 1.5, px: 2, minHeight: "2.8em" }}>
+            <Typography variant="caption" color="text.secondary" component="p">
               {statusText}
             </Typography>
           </Box>
-          <Grid container spacing={2} alignItems="stretch">
+
+          <Grid
+            container
+            spacing={0}
+            alignItems="stretch"
+            sx={{ px: { xs: 0.5, sm: 1 } }}
+          >
             <Grid item xs={12}>
               <LiveTranscriptCard
                 elevation={cardElevation}
-                borderRadius={cardBorderRadius}
-                boxShadow={cardBoxShadow}
+                sx={{
+                  height: "auto",
+                  minHeight: { xs: 180, sm: 200 },
+                  borderRadius: cardBorderRadius,
+                  boxShadow: cardBoxShadow,
+                }}
                 listening={listening}
                 currentLanguage={currentLanguage}
-                handleCopy={handleCopy}
-                handleShare={handleShare}
-                transcript={transcript}
+                handleCopy={handleCopyToClipboard}
+                handleShare={handleShareTranscript}
+                transcript={liveFinalTranscript}
                 speechRecognitionSupported={speechRecognitionSupported}
                 isMicrophoneAvailable={isMicrophoneAvailable}
                 displayedTranscript={displayedTranscript}
@@ -345,117 +797,125 @@ const NewMeetingMobile = (props) => {
                 highlightColor={highlightColor}
                 contextIsRecording={contextIsRecording}
                 liveTranscriptEndRef={liveTranscriptEndRef}
-                sx={{ height: "auto", minHeight: 200 }}
               />
             </Grid>
           </Grid>
-          {recordingError && !contextIsRecording && (
-            <Alert severity="error" sx={{ mt: 2, borderRadius: 2 }}>
-              {typeof recordingError === "string"
-                ? recordingError
-                : "An unknown recording error occurred."}
+
+          {categorizedRecordingError && !contextIsRecording && (
+            <Alert
+              severity="error"
+              sx={{ mt: 2, mx: { xs: 0.5, sm: 1 }, borderRadius: "12px" }}
+            >
+              {categorizedRecordingError}
             </Alert>
           )}
+
           <Dialog
             open={languageDialogOpen}
             onClose={() => setLanguageDialogOpen(false)}
             PaperProps={{
-              sx: {
-                borderRadius: 3,
-                width: "90%",
-                maxWidth: 360,
-              },
+              sx: { borderRadius: "16px", width: "90%", maxWidth: 380 },
             }}
           >
             <DialogTitle
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                p: 2,
-                borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-              }}
+              sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}
             >
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <LanguageIcon
-                  sx={{ mr: 1.5, color: theme.palette.primary.main }}
-                />
-                <Typography variant="h6" fontWeight={600}>
-                  Select Language{" "}
-                </Typography>
-              </Box>
-              <IconButton
-                edge="end"
-                onClick={() => setLanguageDialogOpen(false)}
-                aria-label="close"
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
               >
-                <CloseIcon />{" "}
-              </IconButton>
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <LanguageIcon sx={{ mr: 1.5, color: "primary.main" }} />
+                  <Typography variant="h6" fontWeight={600}>
+                    Select Language
+                  </Typography>
+                </Box>
+                <IconButton
+                  edge="end"
+                  onClick={() => setLanguageDialogOpen(false)}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
             </DialogTitle>
             <DialogContent sx={{ p: 2 }}>
               <List sx={{ pt: 0 }}>
-                {languages.map((language) => (
+                {languages.map((lang) => (
                   <ListItem
                     button
-                    onClick={() => {
-                      handleLanguageChange({
-                        target: { value: language.code },
-                      });
-                      setLanguageDialogOpen(false);
-                    }}
-                    key={language.code}
-                    disabled={listening || contextIsRecording || isUploading}
+                    onClick={() => handleLanguageChangeInternal(lang.code)}
+                    key={lang.code}
+                    disabled={
+                      listening ||
+                      contextIsRecording ||
+                      contextIsUploading ||
+                      isLoading
+                    }
                     sx={{
-                      borderRadius: 2,
+                      borderRadius: "12px",
                       mb: 1,
+                      border: `1px solid ${
+                        currentLanguage === lang.code
+                          ? theme.palette.primary.main
+                          : alpha(theme.palette.divider, 0.3)
+                      }`,
                       bgcolor:
-                        currentLanguage === language.code
+                        currentLanguage === lang.code
                           ? alpha(theme.palette.primary.main, 0.08)
                           : "transparent",
-                      border: `1px solid ${
-                        currentLanguage === language.code
-                          ? theme.palette.primary.main
-                          : "transparent"
-                      }`,
+                      "&:hover": {
+                        bgcolor:
+                          currentLanguage !== lang.code
+                            ? alpha(theme.palette.action.hover, 0.04)
+                            : undefined,
+                      },
                     }}
                   >
-                    <ListItemIcon>
+                    <ListItemIcon sx={{ minWidth: 32 }}>
                       <LanguageIcon
+                        fontSize="small"
                         color={
-                          currentLanguage === language.code
-                            ? "primary"
-                            : "inherit"
+                          currentLanguage === lang.code ? "primary" : "inherit"
                         }
-                      />{" "}
+                      />
                     </ListItemIcon>
-                    <ListItemText primary={language.name} />
-                    {currentLanguage === language.code && (
-                      <CheckMarkIcon color="primary" />
+                    <ListItemText
+                      primary={lang.name}
+                      primaryTypographyProps={{
+                        fontWeight: currentLanguage === lang.code ? 500 : 400,
+                      }}
+                    />
+                    {currentLanguage === lang.code && (
+                      <CheckMarkIcon color="primary" fontSize="small" />
                     )}
                   </ListItem>
                 ))}
               </List>
             </DialogContent>
-            <DialogActions sx={{ p: 2, pt: 0 }}>
+            <DialogActions sx={{ p: 2, pt: 1 }}>
               <Button
                 onClick={() => setLanguageDialogOpen(false)}
                 variant="outlined"
                 fullWidth
-                sx={{ borderRadius: 28 }}
+                sx={{ borderRadius: "20px" }}
               >
-                Cancel{" "}
+                Cancel
               </Button>
             </DialogActions>
           </Dialog>
+
           <Drawer
             anchor="bottom"
             open={tipsDrawerOpen}
             onClose={() => setTipsDrawerOpen(false)}
             PaperProps={{
               sx: {
-                maxHeight: "80vh",
-                borderTopLeftRadius: 16,
-                borderTopRightRadius: 16,
+                maxHeight: "85vh",
+                borderTopLeftRadius: "20px",
+                borderTopRightRadius: "20px",
                 overflow: "hidden",
               },
             }}
@@ -467,6 +927,10 @@ const NewMeetingMobile = (props) => {
                 justifyContent: "space-between",
                 alignItems: "center",
                 borderBottom: `1px solid ${theme.palette.divider}`,
+                position: "sticky",
+                top: 0,
+                bgcolor: "background.paper",
+                zIndex: 1,
               }}
             >
               <Box sx={{ display: "flex", alignItems: "center" }}>
@@ -476,14 +940,14 @@ const NewMeetingMobile = (props) => {
                 </Typography>
               </Box>
               <IconButton onClick={() => setTipsDrawerOpen(false)} edge="end">
-                <CloseIcon />{" "}
+                <CloseIcon />
               </IconButton>
             </Box>
-            <Box sx={{ p: 2, overflowY: "auto" }}>
+            <Box sx={{ p: 2, overflowY: "auto", pb: 10 }}>
               <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                How to Get Better Results{" "}
+                How to Get Better Results
               </Typography>
-              <List>
+              <List dense>
                 {[
                   {
                     number: 1,
@@ -510,8 +974,13 @@ const NewMeetingMobile = (props) => {
                       'End with "To summarize our discussion today..."',
                   },
                 ].map((tip) => (
-                  <ListItem key={tip.number} sx={{ mb: 2, px: 0 }}>
-                    <ListItemIcon>
+                  <ListItem
+                    key={tip.number}
+                    sx={{ mb: 1.5, px: 0, alignItems: "flex-start" }}
+                  >
+                    {" "}
+                    <ListItemIcon sx={{ minWidth: 38, mt: 0.5 }}>
+                      {" "}
                       <Box
                         sx={{
                           width: 28,
@@ -523,11 +992,13 @@ const NewMeetingMobile = (props) => {
                           justifyContent: "center",
                           color: "white",
                           fontWeight: "bold",
+                          flexShrink: 0,
                         }}
                       >
+                        {" "}
                         {tip.number}{" "}
                       </Box>{" "}
-                    </ListItemIcon>
+                    </ListItemIcon>{" "}
                     <ListItemText
                       primary={
                         <Typography variant="subtitle2" fontWeight={600}>
@@ -535,7 +1006,7 @@ const NewMeetingMobile = (props) => {
                         </Typography>
                       }
                       secondary={tip.description}
-                    />
+                    />{" "}
                   </ListItem>
                 ))}
               </List>
@@ -544,19 +1015,19 @@ const NewMeetingMobile = (props) => {
                   mt: 2,
                   p: 2,
                   bgcolor: alpha(theme.palette.warning.main, 0.08),
-                  borderRadius: 2,
+                  borderRadius: "12px",
                   border: `1px solid ${alpha(theme.palette.warning.main, 0.2)}`,
                 }}
               >
                 <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-                  <InfoIcon fontSize="small" color="warning" sx={{ mr: 1 }} />{" "}
+                  <InfoIcon fontSize="small" color="warning" sx={{ mr: 1 }} />
                   <Typography variant="subtitle2" fontWeight={600}>
                     Pro Tip
-                  </Typography>{" "}
+                  </Typography>
                 </Box>
                 <Typography variant="body2">
                   Position your device closer to the speaker and minimize
-                  background noise for the best recording quality.{" "}
+                  background noise for the best recording quality.
                 </Typography>
               </Box>
               <Box
@@ -564,45 +1035,62 @@ const NewMeetingMobile = (props) => {
                   mt: 3,
                   p: 2,
                   bgcolor: alpha(theme.palette.info.main, 0.08),
-                  borderRadius: 2,
+                  borderRadius: "12px",
                   border: `1px solid ${alpha(theme.palette.info.main, 0.2)}`,
                 }}
               >
                 <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                  Recognized Keywords{" "}
+                  Recognized Keywords (Examples)
                 </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                  {keywordsToHighlight.slice(0, 10).map((keyword) => (
+                <Box
+                  sx={{ display: "flex", flexWrap: "wrap", gap: 0.8, mt: 1 }}
+                >
+                  {(keywordsToHighlight || []).slice(0, 12).map((keyword) => (
                     <Chip
                       key={keyword}
                       label={keyword}
                       size="small"
-                      color="primary"
                       variant="outlined"
-                      sx={{ borderRadius: 6 }}
+                      sx={{ borderRadius: "16px" }}
                     />
                   ))}
                 </Box>
               </Box>
             </Box>
-            <Box sx={{ p: 2, borderTop: `1px solid ${theme.palette.divider}` }}>
+            <Box
+              sx={{
+                p: 2,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                position: "sticky",
+                bottom: 0,
+                bgcolor: "background.paper",
+                zIndex: 1,
+              }}
+            >
               <Button
                 fullWidth
                 variant="contained"
                 onClick={() => setTipsDrawerOpen(false)}
                 sx={{
-                  borderRadius: 8,
-                  py: 1,
+                  borderRadius: "20px",
+                  py: 1.25,
                   textTransform: "none",
                   fontWeight: 600,
                 }}
               >
-                Got it{" "}
+                Got it
               </Button>
             </Box>
           </Drawer>
+
           <Fab
-            color={contextIsRecording ? "error" : "primary"}
+            color={
+              contextIsRecording
+                ? "error"
+                : isReadyToProcess
+                ? "success"
+                : "primary"
+            }
             aria-label={
               contextIsRecording
                 ? "Stop recording"
@@ -611,54 +1099,46 @@ const NewMeetingMobile = (props) => {
                 : "Start recording"
             }
             onClick={
-              isReadyToProcess ? handleProcessRecording : toggleRecording
+              isReadyToProcess
+                ? handleProcessRecordingInternal
+                : toggleRecording
             }
             disabled={
               isReadyToProcess
-                ? !canProcess || isLoading || isUploading
+                ? !canProcess || isLoading || contextIsUploading
                 : isLoading ||
-                  isUploading ||
+                  contextIsUploading ||
                   mediaRecorderStatus === "acquiring_media" ||
-                  (!isMicrophoneAvailable && !audioBlob) ||
-                  !speechRecognitionSupported
+                  (!isMicrophoneAvailable &&
+                    !audioBlob &&
+                    !contextIsRecording) ||
+                  (!speechRecognitionSupported &&
+                    !audioBlob &&
+                    !contextIsRecording)
             }
             sx={{
               position: "fixed",
-              bottom: 32,
+              bottom: { xs: 24, sm: 32 },
               left: "50%",
               transform: "translateX(-50%)",
-              boxShadow: theme.shadows[6],
-              width: isReadyToProcess ? "auto" : 64,
-              height: isReadyToProcess ? 48 : 64,
-              px: isReadyToProcess ? 3 : 0,
-              borderRadius: isReadyToProcess ? 28 : "50%",
-              transition: "all 0.3s ease",
+              boxShadow: theme.shadows[8],
+              width: isReadyToProcess ? "auto" : { xs: 60, sm: 64 },
+              height: isReadyToProcess ? 48 : { xs: 60, sm: 64 },
+              px: isReadyToProcess ? 3 : undefined,
+              borderRadius: isReadyToProcess ? "28px" : "50%",
+              transition: "all 0.25s ease-in-out",
               ...(contextIsRecording && {
-                "&::after": {
-                  content: '""',
-                  position: "absolute",
-                  top: -4,
-                  right: -4,
-                  bottom: -4,
-                  left: -4,
-                  border: `2px solid ${theme.palette.error.main}`,
-                  borderRadius: "50%",
-                  animation: "pulsate 1.5s ease-out infinite",
-                },
-                "@keyframes pulsate": {
-                  "0%": { opacity: 1, transform: "scale(1)" },
-                  "50%": { opacity: 0.5, transform: "scale(1.1)" },
-                  "100%": { opacity: 1, transform: "scale(1)" },
-                },
+                animation: "$pulsateFab 1.5s infinite ease-out",
               }),
             }}
           >
             {isReadyToProcess ? (
-              isLoading || isUploading ? (
+              (isLoading && !contextIsUploading) || contextIsUploading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
                 <>
-                  <PlayIcon sx={{ mr: 1 }} /> Process
+                  {" "}
+                  <PlayIcon sx={{ mr: 0.8 }} /> Process{" "}
                 </>
               )
             ) : contextIsRecording ? (
@@ -669,34 +1149,67 @@ const NewMeetingMobile = (props) => {
           </Fab>
         </motion.div>
       )}
+
       {activeStep === 1 && (
         <motion.div
-          key="step1-mobile"
-          initial={{ opacity: 0, y: 20 }}
+          key="step1-mobile-view"
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.4 }}
-          style={{ display: "flex", justifyContent: "center", width: "100%" }}
+          exit={{ opacity: 0, y: -15 }}
+          transition={{ duration: 0.3 }}
+          style={{
+            display: "flex",
+            justifyContent: "center",
+            width: "100%",
+            paddingTop: "8px",
+          }}
         >
           <ProcessingView
-            finalTranscription={finalTranscription}
-            isTranscribing={isTranscribing}
-            finalTranscriptionError={finalTranscriptionError}
-            contextError={contextError}
-            transcribeMeetingAudio={transcribeMeetingAudio}
+            finalTranscription={finalTranscriptionFromContext}
+            isTranscribing={contextIsTranscribing}
+            finalTranscriptionError={categorizedFinalTranscriptionError} // Use categorized error
+            contextError={categorizedProcessingError} // General processing error for this view
+            transcribeMeetingAudio={contextTranscribeMeetingAudio} // Pass the actual function
             audioBlob={audioBlob}
             meetingTitle={meetingTitle}
             setMeetingTitle={setMeetingTitle}
-            handleGenerateAndSave={handleGenerateAndSave}
-            isProcessingMinutes={isProcessingMinutes}
-            processingError={processingError}
-            handleRecordAgain={handleRecordAgain}
+            handleGenerateAndSave={handleGenerateAndSaveInternal}
+            isProcessingMinutes={isGeneratingMinutes}
+            processingError={categorizedProcessingError} // Or contextError if more general
+            handleRecordAgain={handleRecordAgainInternal}
             cardElevation={cardElevation}
             cardBorderRadius={cardBorderRadius}
+            cardBoxShadow={cardBoxShadow}
             isLoading={isLoading}
+            theme={theme}
+            highlightColor={highlightColor}
+            keywordsToHighlight={keywordsToHighlight}
+            currentLanguage={currentLanguage}
+            recordingTime={recordingTime}
+            handleCopy={handleCopyToClipboard}
+            handleShare={handleShareTranscript}
+            showMinuteContent={showMinuteContent}
           />
         </motion.div>
       )}
+
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={handleSnackbarClose}
+        message={snackbarMessage}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        sx={{
+          "& .MuiSnackbarContent-root": {
+            borderRadius: "8px",
+            minWidth: "auto",
+            textAlign: "center",
+            px: 2.5,
+            py: 1.25,
+            mb: { xs: 11, sm: 2 },
+          },
+        }}
+      />
     </Box>
   );
 };
