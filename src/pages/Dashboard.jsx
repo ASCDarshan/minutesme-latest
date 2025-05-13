@@ -199,12 +199,19 @@ const Dashboard = () => {
         )} 1px, transparent 0)`,
         backgroundSize: "20px 20px",
         backgroundPosition: "0 0",
-        mt: 5
+        mt: 5,
       }}
     >
       <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
         <DashboardGreeting name={currentUser?.displayName?.split(" ")[0]} />
-        <Grid container spacing={3} sx={{ mb: 4 }}>
+        <Grid
+          container
+          spacing={3}
+          sx={{
+            mb: 4,
+            display: { xs: "none", sm: "flex" },
+          }}
+        >
           <StatCard
             icon={<Mic />}
             title="Total Meetings"
@@ -234,6 +241,7 @@ const Dashboard = () => {
             delay={0.4}
           />
         </Grid>
+
         <Paper
           elevation={0}
           sx={{
