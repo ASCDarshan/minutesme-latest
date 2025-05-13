@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -28,8 +28,6 @@ import {
 import {
   Delete as DeleteIcon,
   TaskAlt,
-  Share as ShareIcon,
-  Download as DownloadIcon,
   MoreVert as MoreVertIcon,
   EditNote,
 } from "@mui/icons-material";
@@ -240,27 +238,6 @@ const MeetingCard = ({ meeting, onDelete }) => {
             },
           }}
         >
-          <MenuItem
-            onClick={(e) => {
-              handleMenuClose(e);
-            }}
-          >
-            <ListItemIcon>
-              <ShareIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Share" />
-          </MenuItem>
-          <MenuItem
-            onClick={(e) => {
-              handleMenuClose(e);
-            }}
-          >
-            <ListItemIcon>
-              <DownloadIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Download" />
-          </MenuItem>
-          <Divider />
           <MenuItem
             onClick={handleDeleteClick}
             sx={{ color: theme.palette.error.main }}
