@@ -36,61 +36,34 @@ const Footer = () => {
 
   const footerSections = [
     {
-      title: "Product",
-      links: [
-        { label: "Features", to: "" },
-        { label: "Pricing", to: "" },
-        { label: "Integrations", to: "" },
-        { label: "Updates", to: "" },
-      ],
-    },
-    {
-      title: "Company",
-      links: [
-        { label: "About Us", to: "" },
-        { label: "Blog", to: "" },
-        { label: "Careers", to: "" },
-        { label: "Contact Us", to: "" },
-      ],
-    },
-    {
-      title: "Resources",
-      links: [
-        { label: "Help Center", to: "" },
-        { label: "API Docs", to: "" },
-        { label: "Community", to: "" },
-        { label: "FAQ", to: "" },
-      ],
-    },
-    {
       title: "Legal",
       links: [
-        { label: "Privacy Policy", to: "" },
-        { label: "Terms of Service", to: "" },
-        { label: "Cookie Policy", to: "" },
+        { label: "Privacy Policy", to: "/privacy" },
+        { label: "Terms of Service", to: "/terms" },
+        { label: "Cookie Policy", to: "/cookie" },
       ],
     },
   ];
 
-  const socialLinks = [
-    { label: "GitHub", icon: <GitHub />, href: "https://github.com" },
-    { label: "Twitter", icon: <Twitter />, href: "https://twitter.com" },
-    { label: "LinkedIn", icon: <LinkedIn />, href: "https://linkedin.com" },
-  ];
+  // const socialLinks = [
+  //   { label: "GitHub", icon: <GitHub />, href: "https://github.com" },
+  //   { label: "Twitter", icon: <Twitter />, href: "https://twitter.com" },
+  //   { label: "LinkedIn", icon: <LinkedIn />, href: "https://linkedin.com" },
+  // ];
 
-  const contactInfo = [
-    {
-      icon: <MailOutline fontSize="small" />,
-      text: "info@makemyminutes.com",
-      href: "mailto:info@makemyminutes.com",
-    },
-    {
-      icon: <Phone fontSize="small" />,
-      text: "+1 (555) 123-4567",
-      href: "tel:+15551234567",
-    },
-    { icon: <LocationOn fontSize="small" />, text: "San Francisco, CA" },
-  ];
+  // const contactInfo = [
+  //   {
+  //     icon: <MailOutline fontSize="small" />,
+  //     text: "info@makemyminutes.com",
+  //     href: "mailto:info@makemyminutes.com",
+  //   },
+  //   {
+  //     icon: <Phone fontSize="small" />,
+  //     text: "+1 (555) 123-4567",
+  //     href: "tel:+15551234567",
+  //   },
+  //   { icon: <LocationOn fontSize="small" />, text: "San Francisco, CA" },
+  // ];
 
   return (
     <Box
@@ -121,7 +94,7 @@ const Footer = () => {
                 MakeMyMinutes: Effortless meeting summaries powered by AI. Focus
                 on the conversation, let us handle the notes.
               </Typography>
-              <Stack direction="row" spacing={1.5}>
+              {/* <Stack direction="row" spacing={1.5}>
                 {socialLinks.map((social) => (
                   <IconButton
                     key={social.label}
@@ -142,7 +115,7 @@ const Footer = () => {
                     {social.icon}
                   </IconButton>
                 ))}
-              </Stack>
+              </Stack> */}
             </Stack>
           </Grid>
           <Grid item xs={12} md={8}>
@@ -200,7 +173,7 @@ const Footer = () => {
           <Typography variant="body2" sx={{ textAlign: "center" }}>
             © {currentYear} MakeMyMinutes. All rights reserved.
           </Typography>
-          <Stack
+          {/* <Stack
             direction={{ xs: "column", sm: "row" }}
             spacing={{ xs: 1, sm: 2.5 }}
             alignItems="center"
@@ -243,7 +216,7 @@ const Footer = () => {
                 <Typography variant="body2">{item.text}</Typography>
               </Link>
             ))}
-          </Stack>
+          </Stack> */}
           <Button
             size="small"
             onClick={scrollToTop}

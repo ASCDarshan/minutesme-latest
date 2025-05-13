@@ -1,5 +1,11 @@
 import React, { Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { Box, Container } from "@mui/material";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { MeetingProvider } from "./context/MeetingContext";
@@ -12,6 +18,9 @@ import NewMeeting from "./pages/NewMeeting";
 import MeetingDetails from "./pages/MeetingDetails";
 import Profile from "./pages/Profile";
 import ScrollToTop from "./components/UI/ScrollToTop";
+import Terms from "./pages/Terms";
+import Privacy from "./pages/Privacy";
+import Cookies from "./pages/Cookies";
 
 const Loading = () => (
   <Container maxWidth="sm" sx={{ py: 15, textAlign: "center" }}>
@@ -34,6 +43,12 @@ const PrivateRoute = ({ children }) => {
 };
 
 const AppContent = () => {
+  const location = useLocation();
+  const hideFooterPaths = ["/new-meeting", "/meeting"];
+
+  const hideFooter = hideFooterPaths.some((path) =>
+    location.pathname.startsWith(path)
+  );
   return (
     <Box>
       <Header />
@@ -72,10 +87,34 @@ const AppContent = () => {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/privacy"
+            element={
+              <PrivateRoute>
+                <Privacy />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/terms"
+            element={
+              <PrivateRoute>
+                <Terms />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/cookie"
+            element={
+              <PrivateRoute>
+                <Cookies />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
-      <Footer />
+      {!hideFooter && <Footer />}
     </Box>
   );
 };
