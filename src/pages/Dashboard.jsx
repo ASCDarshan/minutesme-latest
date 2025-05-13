@@ -243,15 +243,29 @@ const Dashboard = () => {
         </Grid>
 
         <Paper
-          elevation={0}
+          elevation={2}
           sx={{
-            p: { xs: 2, md: 3 },
-            borderRadius: 4,
-            mb: 3,
-            bgcolor: alpha(theme.palette.background.paper, 0.8),
-            backdropFilter: "blur(10px)",
-            border: `1px solid ${theme.palette.divider}`,
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.05)",
+            p: { xs: 2.5, md: 3.5 },
+            borderRadius: { xs: 3, md: 4 },
+            mb: 4,
+            bgcolor: alpha(theme.palette.background.paper, 0.9),
+            backdropFilter: "blur(20px)",
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`,
+            boxShadow: `0 8px 24px ${alpha(theme.palette.common.black, 0.06)}`,
+            position: { xs: "sticky", md: "relative" },
+            top: {
+              xs: "80px",
+              md: "auto",
+            },
+            zIndex: { xs: 1090, md: 1000, lg: 100 },
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: `0 10px 30px ${alpha(
+                theme.palette.common.black,
+                0.08
+              )}`,
+              borderColor: alpha(theme.palette.primary.main, 0.2),
+            },
           }}
         >
           <Box
@@ -349,14 +363,9 @@ const Dashboard = () => {
                   Sort
                 </Button>
                 <ButtonGroup
-                  variant="outlined"
                   size="small"
                   sx={{
-                    borderRadius: "50px",
-                    overflow: "hidden",
-                    ".MuiButtonGroup-grouped": {
-                      border: `1px solid ${theme.palette.divider}`,
-                    },
+                    borderRadius: "120px",
                   }}
                 >
                   <Tooltip title="Grid View">
@@ -587,7 +596,14 @@ const Dashboard = () => {
                 transition={{ duration: 0.3 }}
               >
                 {viewMode === "grid" ? (
-                  <Grid container spacing={3}>
+                  <Grid
+                    container
+                    spacing={3}
+                    sx={{
+                      justifyContent: { xs: "center", sm: "flex-start" },
+                      marginX: { xs: "auto", sm: 0 },
+                    }}
+                  >
                     {processedMeetings.map((meeting) => (
                       <Grid item xs={12} sm={6} md={4} key={meeting.id}>
                         <MeetingCard
@@ -599,7 +615,14 @@ const Dashboard = () => {
                     ))}
                   </Grid>
                 ) : (
-                  <Box>
+                  <Box
+                    sx={{
+                      marginX: { xs: "auto", sm: 0 },
+                      maxWidth: { xs: "95%", sm: "100%" },
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
                     {processedMeetings.map((meeting) => (
                       <MeetingListItem
                         key={meeting.id}

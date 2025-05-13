@@ -1,11 +1,10 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Box,
   Typography,
   IconButton,
-  Divider,
   Avatar,
   Menu,
   MenuItem,
@@ -25,8 +24,6 @@ import {
 import {
   Delete as DeleteIcon,
   TaskAlt,
-  Share as ShareIcon,
-  Download as DownloadIcon,
   MoreVert as MoreVertIcon,
   EditNote,
 } from "@mui/icons-material";
@@ -200,27 +197,6 @@ const MeetingListItem = ({ meeting, onDelete }) => {
           }}
         >
           <MenuItem
-            onClick={(e) => {
-              handleMenuClose(e);
-            }}
-          >
-            <ListItemIcon>
-              <ShareIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Share" />
-          </MenuItem>
-          <MenuItem
-            onClick={(e) => {
-              handleMenuClose(e);
-            }}
-          >
-            <ListItemIcon>
-              <DownloadIcon fontSize="small" />
-            </ListItemIcon>
-            <ListItemText primary="Download" />
-          </MenuItem>
-          <Divider />
-          <MenuItem
             onClick={handleDeleteClick}
             sx={{ color: theme.palette.error.main }}
           >
@@ -250,8 +226,7 @@ const MeetingListItem = ({ meeting, onDelete }) => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-meeting-dialog-description">
-            Are you sure you want to   This action cannot be
-            undone.
+            Are you sure you want to This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ p: 2, pt: 0 }}>
