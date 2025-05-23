@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Box, Typography } from "@mui/material";
 import { WavingHand } from "@mui/icons-material";

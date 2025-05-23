@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Box, IconButton, useTheme, alpha } from "@mui/material";
 import { Mic as MicIcon, Stop as StopIcon } from "@mui/icons-material";

@@ -1,4 +1,3 @@
-import React from "react";
 import { motion } from "framer-motion";
 import { Box, Typography, Button, Paper, useTheme, alpha } from "@mui/material";
 import { Add as AddIcon, Mic } from "@mui/icons-material";

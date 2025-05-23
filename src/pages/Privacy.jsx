@@ -1,5 +1,3 @@
-// Privacy.jsx
-import React from "react";
 import {
   Container,
   Typography,
@@ -11,7 +9,7 @@ import {
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
-import ShieldIcon from "@mui/icons-material/Shield"; // Example Icon
+import ShieldIcon from "@mui/icons-material/Shield";
 
 const Privacy = () => {
   return (

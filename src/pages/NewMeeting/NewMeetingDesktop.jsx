@@ -412,8 +412,8 @@ const RecorderTimer = ({ seconds, isRecording, isUploading }) => {
           bgcolor: isRecording
             ? "error.main"
             : isUploading
-              ? "info.main"
-              : "text.disabled",
+            ? "info.main"
+            : "text.disabled",
           animation: isRecording ? "blink 1.5s infinite" : "none",
         }}
       />
@@ -711,9 +711,8 @@ const MeetingRecorder = () => {
     isTranscribing,
     contextError,
     transcribeMeetingAudio,
-  ]); // Added hasProcessedRef dependency? No, keep it as is.
+  ]);
 
-  // Auto-scroll Live Transcript Effect
   useEffect(() => {
     if (activeStep === 0 && liveTranscriptEndRef.current) {
       liveTranscriptEndRef.current.scrollIntoView({
@@ -725,18 +724,16 @@ const MeetingRecorder = () => {
 
   useEffect(() => {
     if (contextError) {
-      setSnackbarMessage(`Error: ${contextError}`); // Prefix with Error for clarity
+      setSnackbarMessage(`Error: ${contextError}`);
       setSnackbarOpen(true);
     }
   }, [contextError]);
 
   useEffect(() => {
-
     if (audioBlob && !contextIsRecording && !isUploading) {
       console.log("audioBlob && !contextIsRecording && !isUploading");
     }
   }, [audioBlob, contextIsRecording, isUploading]);
-
 
   const toggleRecording = useCallback(() => {
     if (
@@ -910,8 +907,8 @@ const MeetingRecorder = () => {
   const processingError = useMemo(
     () =>
       contextError &&
-        !contextError.startsWith("Transcription failed") &&
-        !contextError.startsWith("Recording Error")
+      !contextError.startsWith("Transcription failed") &&
+      !contextError.startsWith("Recording Error")
         ? contextError
         : null,
     [contextError]
@@ -1004,7 +1001,6 @@ const MeetingRecorder = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center" }}>
-
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <WaveLogoIcon
                   color="primary"
@@ -1110,35 +1106,35 @@ const MeetingRecorder = () => {
                       contextIsRecording
                         ? toggleRecording
                         : recordingStoppedManually && audioBlob
-                          ? handleProcessRecording
-                          : toggleRecording
+                        ? handleProcessRecording
+                        : toggleRecording
                     }
                     sx={{
                       borderRadius: 20,
                       bgcolor: contextIsRecording
                         ? alpha(theme.palette.error.main, 0.1)
                         : recordingStoppedManually && audioBlob
-                          ? alpha(theme.palette.success.main, 0.1)
-                          : isUploading
-                            ? alpha(theme.palette.info.main, 0.1)
-                            : alpha(theme.palette.primary.main, 0.1),
+                        ? alpha(theme.palette.success.main, 0.1)
+                        : isUploading
+                        ? alpha(theme.palette.info.main, 0.1)
+                        : alpha(theme.palette.primary.main, 0.1),
                       color: contextIsRecording
                         ? "error.main"
                         : recordingStoppedManually && audioBlob
-                          ? "success.main"
-                          : isUploading
-                            ? "info.dark"
-                            : "primary.main",
+                        ? "success.main"
+                        : isUploading
+                        ? "info.dark"
+                        : "primary.main",
                       px: 3,
                       py: 0.5,
                       border: "1px solid",
                       borderColor: contextIsRecording
                         ? alpha(theme.palette.error.main, 0.2)
                         : recordingStoppedManually && audioBlob
-                          ? alpha(theme.palette.success.main, 0.2)
-                          : isUploading
-                            ? alpha(theme.palette.info.main, 0.2)
-                            : alpha(theme.palette.primary.main, 0.2),
+                        ? alpha(theme.palette.success.main, 0.2)
+                        : isUploading
+                        ? alpha(theme.palette.info.main, 0.2)
+                        : alpha(theme.palette.primary.main, 0.2),
                       textTransform: "none",
                       fontWeight: 600,
                       display: "flex",
@@ -1148,10 +1144,10 @@ const MeetingRecorder = () => {
                         bgcolor: contextIsRecording
                           ? alpha(theme.palette.error.main, 0.2)
                           : recordingStoppedManually && audioBlob
-                            ? alpha(theme.palette.success.main, 0.2)
-                            : isUploading
-                              ? alpha(theme.palette.info.main, 0.2)
-                              : alpha(theme.palette.primary.main, 0.2),
+                          ? alpha(theme.palette.success.main, 0.2)
+                          : isUploading
+                          ? alpha(theme.palette.info.main, 0.2)
+                          : alpha(theme.palette.primary.main, 0.2),
                       },
                       pointerEvents: isUploading ? "none" : "auto",
                     }}
@@ -1173,12 +1169,12 @@ const MeetingRecorder = () => {
                     {contextIsRecording
                       ? "Stop Recording"
                       : isUploading
-                        ? "Processing Upload..."
-                        : recordingStoppedManually && audioBlob
-                          ? "Process Audio"
-                          : recordingStoppedManually && !audioBlob
-                            ? "Stopped (No Audio)"
-                            : "Start Recording"}
+                      ? "Processing Upload..."
+                      : recordingStoppedManually && audioBlob
+                      ? "Process Audio"
+                      : recordingStoppedManually && !audioBlob
+                      ? "Stopped (No Audio)"
+                      : "Start Recording"}
                   </Button>
                 </Box>
                 <Box sx={{ mb: 1 }}>
@@ -1214,11 +1210,17 @@ const MeetingRecorder = () => {
                         title="Upload audio file (MP3 format only)"
                       >
                         {isUploading || isLoading ? (
-                          <CircularProgress size={16} color="inherit" sx={{ mr: 1 }} />
+                          <CircularProgress
+                            size={16}
+                            color="inherit"
+                            sx={{ mr: 1 }}
+                          />
                         ) : (
                           <FileUploadIcon fontSize="small" sx={{ mr: 1 }} />
                         )}
-                        {isUploading ? "Processing Upload..." : "Upload Recording"}
+                        {isUploading
+                          ? "Processing Upload..."
+                          : "Upload Recording"}
                         <input
                           type="file"
                           accept="audio/mpeg"
@@ -1233,12 +1235,12 @@ const MeetingRecorder = () => {
                 {(contextIsRecording ||
                   recordingStoppedManually ||
                   isUploading) && (
-                    <RecorderTimer
-                      seconds={recordingTime}
-                      isRecording={contextIsRecording}
-                      isUploading={isUploading}
-                    />
-                  )}
+                  <RecorderTimer
+                    seconds={recordingTime}
+                    isRecording={contextIsRecording}
+                    isUploading={isUploading}
+                  />
+                )}
               </Box>
 
               <Box
@@ -1437,8 +1439,8 @@ const MeetingRecorder = () => {
                           {recordingStoppedManually
                             ? "Audio ready. Click 'Process Audio' below."
                             : isUploading
-                              ? "Processing upload..."
-                              : "Press Record or Upload File to begin."}
+                            ? "Processing upload..."
+                            : "Press Record or Upload File to begin."}
                         </Typography>
                       </Box>
                     )}
@@ -1457,10 +1459,7 @@ const MeetingRecorder = () => {
                           }}
                         />
                       )}
-
-
                   </Box>
-
 
                   {(contextIsRecording || listening) && (
                     <Box sx={{ mt: 2 }}>
@@ -1504,7 +1503,7 @@ const MeetingRecorder = () => {
                       borderColor: alpha(theme.palette.divider, 0.1),
                       p: 3,
                       boxShadow: theme.shadows[1],
-                      mt: 5
+                      mt: 5,
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
@@ -1923,7 +1922,6 @@ const MeetingRecorder = () => {
                             },
                           }}
                         />
-
                       </Box>
                       <Box sx={{ display: "flex", gap: 1.5 }}>
                         <Button
@@ -1968,10 +1966,11 @@ const MeetingRecorder = () => {
                             minWidth: 0,
                           }}
                         >
-                          {isProcessingAny ? "Processing..." : "Generate Minutes"}
+                          {isProcessingAny
+                            ? "Processing..."
+                            : "Generate Minutes"}
                         </Button>
                       </Box>
-
                     </Box>
                     {processingError && (
                       <Alert severity="error" sx={{ mt: 3, borderRadius: 2 }}>
