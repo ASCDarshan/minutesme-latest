@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, Grid, Paper, Skeleton } from "@mui/material";
 import { alpha, keyframes } from "@mui/system";
 import { useTheme } from "@mui/material/styles";

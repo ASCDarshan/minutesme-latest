@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useMeeting } from "../../context/MeetingContext";
 import { Box, Typography, IconButton } from "@mui/material";
 import { MicIcon, StopIcon } from "@mui/icons-material";

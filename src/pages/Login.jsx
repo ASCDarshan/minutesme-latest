@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +22,6 @@ import {
   KeyboardArrowRight,
   Mic,
 } from "@mui/icons-material";
-import Logo from "../components/UI/Logo";
 
 const Dot = ({ delay }) => (
   <motion.div
@@ -123,7 +122,7 @@ const FeatureCard = ({ icon, title, delay }) => {
           </Typography>
         </Box>
       </motion.div>
-    </motion.div >
+    </motion.div>
   );
 };
 

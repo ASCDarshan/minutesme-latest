@@ -33,6 +33,7 @@ const Footer = () => {
         { label: "Privacy Policy", to: "/privacy" },
         { label: "Terms of Service", to: "/terms" },
         { label: "Cookie Policy", to: "/cookie" },
+        { label: "Copyright", to: "/copyright" },
       ],
     },
   ];

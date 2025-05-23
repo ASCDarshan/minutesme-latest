@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import { Suspense } from "react";
 import {
   BrowserRouter,
   Routes,
@@ -21,6 +21,9 @@ import ScrollToTop from "./components/UI/ScrollToTop";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Cookies from "./pages/Cookies";
+import Copyright from "./pages/Copyright";
+import OurTeam from "./pages/OurTeam";
+import About from "./pages/About";
 
 const Loading = () => (
   <Container maxWidth="sm" sx={{ py: 15, textAlign: "center" }}>
@@ -72,6 +75,22 @@ const AppContent = () => {
             }
           />
           <Route
+            path="/our-team"
+            element={
+              <PrivateRoute>
+                <OurTeam />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/about-us"
+            element={
+              <PrivateRoute>
+                <About />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/meeting/:id"
             element={
               <PrivateRoute>
@@ -111,10 +130,18 @@ const AppContent = () => {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/copyright"
+            element={
+              <PrivateRoute>
+                <Copyright />
+              </PrivateRoute>
+            }
+          />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </Suspense>
-      {!hideFooter && <Footer />}
+      {!hideFooter && location.pathname !== "/" && <Footer />}
     </Box>
   );
 };

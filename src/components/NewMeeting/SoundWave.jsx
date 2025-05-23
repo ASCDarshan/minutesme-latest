@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { useAnimation } from "framer-motion";
 import { Box, useTheme } from "@mui/material";
 import { motion } from "framer-motion";

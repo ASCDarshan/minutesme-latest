@@ -1,4 +1,3 @@
-import React from "react";
 import { Box, keyframes } from "@mui/material";
 
 const waveAnimation = keyframes`

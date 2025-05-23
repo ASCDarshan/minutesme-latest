@@ -1,4 +1,3 @@
-import React from "react";
 import { Fab, useTheme, Tooltip } from "@mui/material";
 import { Mic as MicIcon, Stop as StopIcon } from "@mui/icons-material";
 

@@ -22,10 +22,8 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import {
-  Settings,
   Logout,
   AccountCircle,
-  Dashboard,
   MicNone,
   Person,
   Mic,
@@ -96,8 +94,10 @@ const Header = () => {
   };
 
   const navItems = [
-    { path: "/dashboard", label: "Dashboard", icon: <Dashboard /> },
-    { path: "/new-meeting", label: "New Recording", icon: <MicNone /> },
+    { path: "/dashboard", label: "Dashboard" },
+    { path: "/new-meeting", label: "New Recording" },
+    { path: "/our-team", label: "Our Team" },
+    { path: "/about-us", label: "About Us" },
   ];
 
   const commonBoxStyles = {
