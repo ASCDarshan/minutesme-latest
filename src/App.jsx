@@ -24,6 +24,9 @@ import Cookies from "./pages/Cookies";
 import Copyright from "./pages/Copyright";
 import OurTeam from "./pages/OurTeam";
 import About from "./pages/About";
+import ContactUs from "./pages/ContactUs";
+import BlogPage from "./pages/Blog/BlogPage";
+import BlogDetails from "./pages/Blog/BlogDetails";
 
 const Loading = () => (
   <Container maxWidth="sm" sx={{ py: 15, textAlign: "center" }}>
@@ -91,6 +94,14 @@ const AppContent = () => {
             }
           />
           <Route
+            path="/contact-us"
+            element={
+              <PrivateRoute>
+                <ContactUs />
+              </PrivateRoute>
+            }
+          />
+          <Route
             path="/meeting/:id"
             element={
               <PrivateRoute>
@@ -107,7 +118,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/privacy"
+            path="/privacy-policy"
             element={
               <PrivateRoute>
                 <Privacy />
@@ -115,7 +126,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/terms"
+            path="/terms-and-conditions"
             element={
               <PrivateRoute>
                 <Terms />
@@ -123,7 +134,7 @@ const AppContent = () => {
             }
           />
           <Route
-            path="/cookie"
+            path="/cookies"
             element={
               <PrivateRoute>
                 <Cookies />
@@ -135,6 +146,22 @@ const AppContent = () => {
             element={
               <PrivateRoute>
                 <Copyright />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/blog"
+            element={
+              <PrivateRoute>
+                <BlogPage />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/blog/:slug"
+            element={
+              <PrivateRoute>
+                <BlogDetails />
               </PrivateRoute>
             }
           />
