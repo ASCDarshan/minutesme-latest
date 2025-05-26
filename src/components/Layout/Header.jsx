@@ -96,8 +96,10 @@ const Header = () => {
   const navItems = [
     { path: "/dashboard", label: "Dashboard" },
     { path: "/new-meeting", label: "New Recording" },
-    { path: "/our-team", label: "Our Team" },
     { path: "/about-us", label: "About Us" },
+    { path: "/our-team", label: "Our Team" },
+    { path: "/blog", label: "Blog" },
+    { path: "/contact-us", label: "Contact Us" },
   ];
 
   const commonBoxStyles = {
