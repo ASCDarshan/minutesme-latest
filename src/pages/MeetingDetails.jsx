@@ -31,12 +31,18 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
+  TextField,
+  Tooltip,
+  Stack,
 } from "@mui/material";
 import {
   ArrowBack,
   MoreVert,
   Share as ShareIcon,
   Delete as DeleteIcon,
+  Edit as EditIcon,
+  Save as SaveIcon,
+  Cancel as CancelIcon,
   ContentCopy,
   CalendarToday,
   AccessTime,
@@ -47,8 +53,6 @@ import {
   Schedule,
   MicNone,
   NoteAlt,
-  Bookmark,
-  BookmarkBorder,
   CheckCircle,
   Public,
   Email,
@@ -57,7 +61,6 @@ import moment from "moment";
 import AudioPlayer from "../components/MeetingDetails/AudioPlayer";
 import AnimatedSection from "../components/MeetingDetails/AnimatedSection";
 import MeetingDetailsSkeleton from "../components/UI/MeetingDetailsSkeleton";
-
 const TabPanel = (props) => {
   const { children, value, index, ...other } = props;
   return (
@@ -85,6 +88,65 @@ const TabPanel = (props) => {
   );
 };
 
+const SectionHeader = ({ title, onEdit, isEditing }) => (
+  <Stack
+    direction="row"
+    justifyContent="space-between"
+    alignItems="center"
+    sx={{ mb: 1 }}
+  >
+    <Typography variant="h6" fontWeight={600} color="text.secondary">
+      {title}
+    </Typography>
+    {!isEditing && (
+      <Tooltip title={`Edit ${title}`}>
+        <IconButton onClick={onEdit} size="small" color="primary">
+          <EditIcon sx={{ fontSize: "1.1rem" }} />
+        </IconButton>
+      </Tooltip>
+    )}
+  </Stack>
+);
+
+const EditInterface = ({
+  value,
+  onChange,
+  onSave,
+  onCancel,
+  label,
+  helperText,
+  rows = 4,
+}) => (
+  <Box>
+    <TextField
+      fullWidth
+      label={label}
+      multiline
+      rows={rows}
+      value={value}
+      onChange={onChange}
+      variant="outlined"
+      size="small"
+      sx={{ mb: 1 }}
+      autoFocus
+      helperText={helperText}
+    />
+    <Stack direction="row" spacing={1} justifyContent="flex-end">
+      <Button onClick={onCancel} size="small" startIcon={<CancelIcon />}>
+        Cancel
+      </Button>
+      <Button
+        onClick={onSave}
+        variant="contained"
+        size="small"
+        startIcon={<SaveIcon />}
+      >
+        Save
+      </Button>
+    </Stack>
+  </Box>
+);
+
 const MeetingDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -94,26 +156,62 @@ const MeetingDetails = () => {
     loading,
     error,
     removeMeeting,
+    saveUpdatedMinutes,
   } = useMeeting();
+
   const [activeTab, setActiveTab] = useState(0);
-  const [isBookmarked, setIsBookmarked] = useState(false);
   const [shareMenuAnchor, setShareMenuAnchor] = useState(null);
   const [actionsMenuAnchor, setActionsMenuAnchor] = useState(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState("success");
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(true);
 
-  const loadMeeting = useCallback(contextLoadMeeting, [contextLoadMeeting]);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState("");
+
+  const [isEditingParticipants, setIsEditingParticipants] = useState(false);
+  const [editedParticipantsText, setEditedParticipantsText] = useState("");
+
+  const [isEditingAgenda, setIsEditingAgenda] = useState(false);
+  const [editedAgendaText, setEditedAgendaText] = useState("");
+
+  const [isEditingKeyPoints, setIsEditingKeyPoints] = useState(false);
+  const [editedKeyPointsText, setEditedKeyPointsText] = useState("");
+
+  const [isEditingDecisions, setIsEditingDecisions] = useState(false);
+  const [editedDecisionsText, setEditedDecisionsText] = useState("");
+
+  const [isEditingActionItems, setIsEditingActionItems] = useState(false);
+  const [editedActionItemsText, setEditedActionItemsText] = useState("");
+
+  const [isEditingNextSteps, setIsEditingNextSteps] = useState(false);
+  const [editedNextStepsText, setEditedNextStepsText] = useState("");
+
+  const [isEditingTranscription, setIsEditingTranscription] = useState(false);
+  const [editedTranscriptionText, setEditedTranscriptionText] = useState("");
+
+  const loadMeeting = useCallback(
+    async (meetingId) => {
+      setIsPageLoading(true);
+      await contextLoadMeeting(meetingId);
+      setIsPageLoading(false);
+    },
+    [contextLoadMeeting]
+  );
 
   useEffect(() => {
     if (id) {
       loadMeeting(id);
-    } else {
-      console.log("MeetingDetails Effect: No meeting ID provided in URL.");
     }
   }, [id, loadMeeting]);
+
+  const minutesData = currentMeeting?.minutesData || {};
+  const hasMinutesError =
+    !!minutesData?.error && Object.keys(minutesData).length === 1;
 
   const handleDeleteMeeting = async () => {
     setDeleteDialogOpen(false);
@@ -121,93 +219,298 @@ const MeetingDetails = () => {
     if (deleted) {
       navigate("/");
       setSnackbarMessage("Meeting deleted successfully");
-      setSnackbarOpen(true);
+      setSnackbarSeverity("success");
     } else {
-      setSnackbarMessage("Failed to delete meeting");
-      setSnackbarOpen(true);
+      setSnackbarMessage(error || "Failed to delete meeting");
+      setSnackbarSeverity("error");
     }
+    setSnackbarOpen(true);
   };
 
-  const handleChangeTab = (event, newValue) => {
-    setActiveTab(newValue);
-  };
+  const handleChangeTab = (event, newValue) => setActiveTab(newValue);
 
-  const handleOpenShareMenu = (event) => {
-    event.stopPropagation();
+  const handleOpenShareMenu = (event) =>
     setShareMenuAnchor(event.currentTarget);
-  };
-
   const handleCloseShareMenu = () => setShareMenuAnchor(null);
-  const handleOpenActionsMenu = (event) => {
-    event.stopPropagation();
+  const handleOpenActionsMenu = (event) =>
     setActionsMenuAnchor(event.currentTarget);
-  };
   const handleCloseActionsMenu = () => setActionsMenuAnchor(null);
 
-  const generatePlainTextSummary = () => {
-    const minutesData = currentMeeting?.minutesData || {};
-    let summary = "";
-    summary += `Meeting Title: ${currentMeeting?.title || "Untitled"}\n`;
-    summary += `Date: ${formattedDate} ${formattedTime}\n`;
+  const formattedDate = currentMeeting?.createdAt?.toDate()
+    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D,YYYY")
+    : "N/A";
+  const formattedTime = currentMeeting?.createdAt?.toDate()
+    ? moment(currentMeeting.createdAt.toDate()).format("h:mm A")
+    : "N/A";
 
-    if (minutesData?.participants && minutesData.participants.length > 0) {
-      summary += `Participants: ${
-        Array.isArray(minutesData.participants)
-          ? minutesData.participants.join(", ")
-          : minutesData.participants
-      }\n`;
+  const handleEdit = (field) => {
+    const data = currentMeeting?.minutesData;
+    switch (field) {
+      case "title":
+        setEditedTitle(currentMeeting?.title || "");
+        setIsEditingTitle(true);
+        break;
+      case "participants":
+        setEditedParticipantsText((data?.participants || []).join("\n"));
+        setIsEditingParticipants(true);
+        break;
+      case "agenda":
+        setEditedAgendaText((data?.agenda || []).join("\n"));
+        setIsEditingAgenda(true);
+        break;
+      case "keyPoints":
+        const keyPointsArray = Array.isArray(data?.keyPoints)
+          ? data.keyPoints
+          : typeof data?.keyPoints === "object" && data?.keyPoints !== null
+          ? Object.values(data.keyPoints)
+          : [];
+        setEditedKeyPointsText(keyPointsArray.join("\n"));
+        setIsEditingKeyPoints(true);
+        break;
+      case "decisions":
+        setEditedDecisionsText((data?.decisions || []).join("\n"));
+        setIsEditingDecisions(true);
+        break;
+      case "actionItems":
+        const actionItemsContent = (
+          Array.isArray(data?.actionItems) ? data.actionItems : []
+        )
+          .map((item) => {
+            return typeof item === "object" && item !== null && item.content
+              ? item.content
+              : String(item);
+          })
+          .join("\n");
+        setEditedActionItemsText(actionItemsContent);
+        setIsEditingActionItems(true);
+        break;
+      case "nextSteps":
+        setEditedNextStepsText(data?.nextSteps || "");
+        setIsEditingNextSteps(true);
+        break;
+      case "transcription":
+        setEditedTranscriptionText(data?.transcription || "");
+        setIsEditingTranscription(true);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleCancel = (field) => {
+    switch (field) {
+      case "title":
+        setIsEditingTitle(false);
+        break;
+      case "participants":
+        setIsEditingParticipants(false);
+        break;
+      case "agenda":
+        setIsEditingAgenda(false);
+        break;
+      case "keyPoints":
+        setIsEditingKeyPoints(false);
+        break;
+      case "decisions":
+        setIsEditingDecisions(false);
+        break;
+      case "actionItems":
+        setIsEditingActionItems(false);
+        break;
+      case "nextSteps":
+        setIsEditingNextSteps(false);
+        break;
+      case "transcription":
+        setIsEditingTranscription(false);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleSave = async (field) => {
+    if (!currentMeeting || !saveUpdatedMinutes) {
+      setSnackbarMessage("Cannot save: Data or save function unavailable.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
+      return;
     }
 
-    if (minutesData?.agenda && minutesData.agenda.length > 0) {
-      summary += "\nAgenda:\n";
-      (Array.isArray(minutesData.agenda)
-        ? minutesData.agenda
-        : [minutesData.agenda]
-      ).forEach((item) => {
-        summary += `- ${item}\n`;
+    let minutesPayload = { ...currentMeeting.minutesData };
+    let titlePayload = currentMeeting.title;
+    let success = false;
+
+    try {
+      const toArray = (text) =>
+        text
+          .split("\n")
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+      switch (field) {
+        case "title":
+          titlePayload = editedTitle;
+          break;
+        case "participants":
+          minutesPayload.participants = toArray(editedParticipantsText);
+          break;
+        case "agenda":
+          minutesPayload.agenda = toArray(editedAgendaText);
+          break;
+        case "keyPoints":
+          minutesPayload.keyPoints = toArray(editedKeyPointsText);
+          break;
+        case "decisions":
+          minutesPayload.decisions = toArray(editedDecisionsText);
+          break;
+        case "actionItems":
+          minutesPayload.actionItems = toArray(editedActionItemsText).map(
+            (content) => ({
+              content: content,
+              assignee: null,
+              dueDate: null,
+              complete: false,
+            })
+          );
+          break;
+        case "nextSteps":
+          minutesPayload.nextSteps = editedNextStepsText;
+          break;
+        case "transcription":
+          minutesPayload.transcription = editedTranscriptionText;
+          break;
+        default:
+          return;
+      }
+
+      success = await saveUpdatedMinutes(
+        currentMeeting.id,
+        minutesPayload,
+        titlePayload
+      );
+
+      if (success) {
+        setSnackbarMessage(
+          `${
+            field.charAt(0).toUpperCase() +
+            field.slice(1).replace(/([A-Z])/g, " $1")
+          } updated successfully!`
+        );
+        setSnackbarSeverity("success");
+        await loadMeeting(id);
+      } else {
+        throw new Error(
+          error || `Failed to update ${field}. Please try again.`
+        );
+      }
+    } catch (e) {
+      setSnackbarMessage(e.message);
+      setSnackbarSeverity("error");
+    } finally {
+      setSnackbarOpen(true);
+      handleCancel(field);
+    }
+  };
+
+  let parsedActionItems = [];
+  if (minutesData?.actionItems) {
+    if (Array.isArray(minutesData.actionItems)) {
+      parsedActionItems = minutesData.actionItems.map((item, index) => {
+        if (typeof item === "string") {
+          const assigneeMatch = item.match(/\[(.*?)\]/);
+          const dueDateMatch = item.match(/\[Due:\s*(.*?)\]/);
+          return {
+            id: `item-${index}`,
+            content: item
+              .replace(/-\s*\[.*?\]\s*/g, "")
+              .replace(/\[Due:.*?\]/g, "")
+              .trim(),
+            assignee: assigneeMatch ? assigneeMatch[1] : null,
+            dueDate: dueDateMatch ? dueDateMatch[1] : null,
+            complete: item.includes("[x]") || item.includes("[X]"),
+          };
+        } else if (typeof item === "object" && item !== null && item.content) {
+          return { id: `item-${index}`, ...item };
+        }
+        return {
+          id: `item-${index}`,
+          content: "Invalid action item format",
+          complete: false,
+        };
       });
+    } else if (typeof minutesData.actionItems === "string") {
+      parsedActionItems = minutesData.actionItems
+        .split("\n")
+        .filter((line) => line.trim() !== "")
+        .map((line, index) => ({
+          id: `item-${index}`,
+          content: line.trim(),
+          assignee: null,
+          dueDate: null,
+          complete: false,
+        }));
     }
+  }
+  const actionItems = parsedActionItems;
 
+  const generatePlainTextSummary = () => {
+    let summary = `Meeting Title: ${
+      currentMeeting?.title || "Untitled Meeting"
+    }\n`;
+    summary += `Date: ${formattedDate} at ${formattedTime}\n`;
+
+    const currentParticipants = currentMeeting?.minutesData?.participants || [];
+    if (currentParticipants.length > 0) {
+      summary += `Participants: ${currentParticipants.join(", ")}\n`;
+    }
+    if (minutesData?.agenda?.length) {
+      summary +=
+        "\nAgenda:\n" +
+        minutesData.agenda.map((item) => `- ${item}`).join("\n") +
+        "\n";
+    }
     if (
       minutesData?.keyPoints &&
-      Object.keys(minutesData.keyPoints).length > 0
+      (Array.isArray(minutesData.keyPoints)
+        ? minutesData.keyPoints.length > 0
+        : Object.keys(minutesData.keyPoints).length > 0)
     ) {
       summary += "\nKey Discussion Points:\n";
-      Object.entries(minutesData.keyPoints).forEach(([key, value]) => {
-        summary += `- ${value}\n`;
-      });
+      const keyPointsArray = Array.isArray(minutesData.keyPoints)
+        ? minutesData.keyPoints
+        : Object.values(minutesData.keyPoints);
+      summary += keyPointsArray.map((item) => `- ${item}`).join("\n") + "\n";
     }
-
-    if (minutesData?.decisions && minutesData.decisions.length > 0) {
-      summary += "\nDecisions Made:\n";
-      (Array.isArray(minutesData.decisions)
-        ? minutesData.decisions
-        : [minutesData.decisions]
-      ).forEach((decision) => {
-        summary += `- ${decision}\n`;
-      });
+    if (minutesData?.decisions?.length) {
+      summary +=
+        "\nDecisions Made:\n" +
+        minutesData.decisions.map((item) => `- ${item}`).join("\n") +
+        "\n";
     }
-
-    if (actionItems.length > 0) {
-      summary += "\nAction Items:\n";
-      actionItems.forEach((item) => {
-        summary += `- ${item.content}`;
-        if (item.assignee) summary += ` (Assigned: ${item.assignee})`;
-        if (item.dueDate) summary += ` (Due: ${item.dueDate})`;
-        summary += ` - Status: ${item.complete ? "Completed" : "Pending"}\n`;
-      });
+    if (actionItems?.length) {
+      summary +=
+        "\nAction Items:\n" +
+        actionItems
+          .map(
+            (item) =>
+              `- ${item.content}${
+                item.assignee ? ` (Assigned: ${item.assignee})` : ""
+              }${item.dueDate ? ` (Due: ${item.dueDate})` : ""} - Status: ${
+                item.complete ? "Completed" : "Pending"
+              }`
+          )
+          .join("\n") +
+        "\n";
     }
-
     if (minutesData?.nextSteps) {
-      summary += "\nNext Steps:\n";
-      summary += `${minutesData.nextSteps}\n`;
+      summary += "\nNext Steps:\n" + minutesData.nextSteps + "\n";
     }
-
     if (minutesData?.transcription) {
-      summary += "\nTranscript:\n";
-      summary += `${minutesData.transcription}\n`;
+      summary +=
+        "\n--- Transcript (Snippet) ---\n" +
+        minutesData.transcription.substring(0, 300) +
+        "...\n";
     }
-
     return summary;
   };
 
@@ -217,80 +520,73 @@ const MeetingDetails = () => {
       currentMeeting?.title || "Untitled Meeting"
     }`;
     const body = generatePlainTextSummary();
-    const mailtoUrl = `mailto:?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-    window.open(mailtoUrl, "_blank");
+    window.open(
+      `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(
+        body
+      )}`,
+      "_blank"
+    );
   };
 
-  const handleCopyLink = () => {
+  const handleCopySummary = () => {
     handleCloseShareMenu();
-    const plainTextSummary = generatePlainTextSummary();
     navigator.clipboard
-      .writeText(plainTextSummary)
+      .writeText(generatePlainTextSummary())
       .then(() => {
-        setSnackbarMessage("Meeting summary copied to clipboard!");
+        setSnackbarMessage("Summary copied!");
+        setSnackbarSeverity("success");
         setSnackbarOpen(true);
       })
       .catch(() => {
-        setSnackbarMessage("Failed to copy to clipboard");
+        setSnackbarMessage("Failed to copy summary.");
+        setSnackbarSeverity("error");
         setSnackbarOpen(true);
       });
-  };
-
-  const handlePublishToWeb = () => {
-    handleCloseShareMenu();
-    setSnackbarMessage("Publish to web functionality coming soon!");
-    setSnackbarOpen(true);
   };
 
   const shareOptions = [
     {
       icon: <Email fontSize="small" />,
-      label: "Email",
+      label: "Share via Email",
       onClick: handleShareEmail,
     },
     {
       icon: <ContentCopy fontSize="small" />,
-      label: "Copy as Text",
-      onClick: handleCopyLink,
+      label: "Copy Summary",
+      onClick: handleCopySummary,
     },
     {
       icon: <Public fontSize="small" />,
-      label: "Publish to Web",
-      onClick: handlePublishToWeb,
+      label: "Publish to Web (Soon)",
+      onClick: () => {
+        handleCloseShareMenu();
+        setSnackbarMessage("Publish to web coming soon!");
+        setSnackbarSeverity("info");
+        setSnackbarOpen(true);
+      },
     },
   ];
 
-  if (loading) {
+  if (isPageLoading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          minHeight: "100vh",
-          bgcolor: alpha(theme.palette.background.default, 0.97),
-        }}
-      >
-        <Container maxWidth="lg" sx={{ py: { xs: 3, md: 4 }, flexGrow: 1 }}>
-          <MeetingDetailsSkeleton activeTab={activeTab} />
-        </Container>
-      </Box>
+      <Container maxWidth="lg" sx={{ py: 4 }}>
+        <MeetingDetailsSkeleton activeTab={activeTab} />
+      </Container>
     );
   }
 
-  if (error) {
+  if (error && !currentMeeting) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Alert severity="error" sx={{ mb: 2 }}>
-          Error loading meeting: {error}
+          Error: {error}
         </Alert>
         <Button
           component={RouterLink}
           to="/dashboard"
           startIcon={<ArrowBack />}
         >
-          Return to Dashboard
+          Dashboard
         </Button>
       </Container>
     );
@@ -299,69 +595,19 @@ const MeetingDetails = () => {
   if (!currentMeeting) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          Meeting not found
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Meeting not found or still loading...
         </Alert>
         <Button
           component={RouterLink}
           to="/dashboard"
           startIcon={<ArrowBack />}
         >
-          Return to Dashboard
+          Dashboard
         </Button>
       </Container>
     );
   }
-
-  const minutesData = currentMeeting.minutesData || {};
-  const hasMinutesError = !!minutesData?.error;
-
-  const formattedDate = currentMeeting.createdAt?.toDate()
-    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D, YYYY")
-    : "Date unavailable";
-  const formattedTime = currentMeeting.createdAt?.toDate()
-    ? moment(currentMeeting.createdAt.toDate()).format("h:mm A")
-    : "";
-
-  let parsedActionItems = [];
-  try {
-    if (minutesData?.actionItems) {
-      parsedActionItems = (
-        Array.isArray(minutesData.actionItems)
-          ? minutesData.actionItems
-          : [minutesData.actionItems]
-      ).map((item) => {
-        if (typeof item !== "string")
-          return {
-            content: "Invalid action item format",
-            assignee: null,
-            dueDate: null,
-            complete: false,
-          };
-
-        return {
-          content: item
-            .replace(/-\s*\[.*?\]\s*/g, "")
-            .replace(/\[Due:.*?\]/g, "")
-            .trim(),
-          assignee: item.match(/\[(.*?)\]/)?.[1] || null,
-          dueDate: item.match(/\[Due:\s*(.*?)\]/)?.[1] || null,
-          complete: item.includes("[x]") || item.includes("[X]"),
-        };
-      });
-    }
-  } catch (e) {
-    console.error("Error parsing action items:", e);
-    parsedActionItems = [
-      {
-        content: "Error loading action items",
-        assignee: null,
-        dueDate: null,
-        complete: false,
-      },
-    ];
-  }
-  const actionItems = parsedActionItems;
 
   return (
     <Box
@@ -403,142 +649,103 @@ const MeetingDetails = () => {
               Back to Dashboard
             </Button>
           </motion.div>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: { xs: "flex-start", sm: "center" },
-              flexDirection: { xs: "column", sm: "row" },
-              gap: { xs: 2, sm: 0 },
-            }}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            justifyContent="space-between"
+            alignItems={{ xs: "flex-start", sm: "center" }}
+            spacing={1}
           >
-            <Box>
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
+            <Box sx={{ flexGrow: 1, width: "100%" }}>
+              {isEditingTitle ? (
+                <Box sx={{ maxWidth: { xs: "100%", sm: "70%" }, mb: 2 }}>
+                  <EditInterface
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onSave={() => handleSave("title")}
+                    onCancel={() => handleCancel("title")}
+                    label="Meeting Title"
+                    helperText="Enter the new title for the meeting."
+                    rows={1}
+                  />
+                </Box>
+              ) : (
+                <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
                   <Typography
                     variant="h4"
                     component="h1"
                     fontWeight={700}
                     sx={{
+                      mr: 1,
                       background: `linear-gradient(135deg, ${theme.palette.text.primary} 30%, ${theme.palette.primary.main} 100%)`,
                       WebkitBackgroundClip: "text",
                       WebkitTextFillColor: "transparent",
-                      mr: 1,
                     }}
                   >
                     {currentMeeting.title || "Meeting Details"}
                   </Typography>
-                </motion.div>
-                <IconButton
-                  onClick={() => setIsBookmarked(!isBookmarked)}
-                  sx={{
-                    color: isBookmarked ? "warning.main" : "text.disabled",
-                    "&:hover": {
-                      color: isBookmarked ? "warning.dark" : "text.primary",
-                    },
-                  }}
-                >
-                  {isBookmarked ? <Bookmark /> : <BookmarkBorder />}
-                </IconButton>
-              </Box>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mt: 1 }}>
-                  <Chip
-                    icon={<CalendarToday fontSize="small" />}
-                    label={formattedDate}
-                    size="small"
-                    sx={{ bgcolor: "background.paper" }}
-                  />
-                  {formattedTime && (
-                    <Chip
-                      icon={<AccessTime fontSize="small" />}
-                      label={formattedTime}
+                  <Tooltip title="Edit Title">
+                    <IconButton
+                      onClick={() => handleEdit("title")}
                       size="small"
-                      sx={{ bgcolor: "background.paper" }}
-                    />
-                  )}
-                  {minutesData?.participants && (
-                    <Chip
-                      icon={<People fontSize="small" />}
-                      label={
-                        Array.isArray(minutesData.participants)
-                          ? minutesData.participants.length > 3
-                            ? `${minutesData.participants
-                                .slice(0, 3)
-                                .join(", ")} +${
-                                minutesData.participants.length - 3
-                              }`
-                            : minutesData.participants.join(", ")
-                          : minutesData.participants
-                      }
-                      size="small"
-                      sx={{ bgcolor: "background.paper" }}
-                    />
-                  )}
+                    >
+                      <EditIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
                 </Box>
-              </motion.div>
-            </Box>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                alignSelf: { xs: "flex-end", sm: "auto" },
-              }}
-            >
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button
+              )}
+              <Stack direction="row" spacing={1} mt={0.5} flexWrap="wrap">
+                <Chip
+                  icon={<CalendarToday fontSize="small" />}
+                  label={formattedDate}
+                  size="small"
                   variant="outlined"
-                  startIcon={<ShareIcon />}
-                  onClick={handleOpenShareMenu}
-                  sx={{ borderRadius: 2 }}
-                >
-                  Share
-                </Button>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                <IconButton
-                  onClick={handleOpenActionsMenu}
-                  sx={{
-                    bgcolor: "background.paper",
-                    boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
-                    border: "1px solid",
-                    borderColor: theme.palette.divider,
-                    "&:hover": {
-                      bgcolor: alpha(theme.palette.primary.main, 0.05),
-                    },
-                  }}
-                >
-                  <MoreVert />
-                </IconButton>
-              </motion.div>
+                />
+                <Chip
+                  icon={<AccessTime fontSize="small" />}
+                  label={formattedTime}
+                  size="small"
+                  variant="outlined"
+                />
+              </Stack>
             </Box>
-          </Box>
+            <Stack
+              direction="row"
+              spacing={1}
+              alignSelf={{ xs: "flex-end", sm: "center" }}
+              sx={{ mt: { xs: 2, sm: 0 } }}
+            >
+              <Button
+                variant="outlined"
+                startIcon={<ShareIcon />}
+                onClick={handleOpenShareMenu}
+                sx={{ borderRadius: 20, px: 2 }}
+              >
+                Share
+              </Button>
+              <IconButton
+                onClick={handleOpenActionsMenu}
+                sx={{
+                  bgcolor: "background.paper",
+                  boxShadow: 1,
+                  border: `1px solid ${theme.palette.divider}`,
+                  "&:hover": {
+                    bgcolor: alpha(theme.palette.primary.main, 0.05),
+                  },
+                }}
+              >
+                <MoreVert />
+              </IconButton>
+            </Stack>
+          </Stack>
         </Box>
+
         <Box sx={{ mt: 4 }}>
           <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
             <Tabs
               value={activeTab}
               onChange={handleChangeTab}
               variant={isMobile ? "scrollable" : "fullWidth"}
-              scrollButtons={isMobile ? "auto" : false}
+              scrollButtons="auto"
               allowScrollButtonsMobile
               sx={{
                 "& .MuiTab-root": {
@@ -556,33 +763,39 @@ const MeetingDetails = () => {
                 label="Minutes"
                 icon={<NoteAlt />}
                 iconPosition="start"
-                disabled={hasMinutesError}
+                disabled={hasMinutesError && activeTab !== 1 && activeTab !== 3}
               />
               <Tab label="Transcript" icon={<Comment />} iconPosition="start" />
               <Tab
                 label="Action Items"
                 icon={<AssignmentTurnedIn />}
                 iconPosition="start"
-                disabled={hasMinutesError}
+                disabled={hasMinutesError && activeTab !== 1 && activeTab !== 3}
               />
               <Tab label="Recording" icon={<MicNone />} iconPosition="start" />
             </Tabs>
           </Box>
-          {hasMinutesError && activeTab !== 3 && activeTab !== 1 && (
-            <Alert severity="warning" sx={{ mt: 3 }}>
+
+          {hasMinutesError && activeTab !== 1 && activeTab !== 3 && (
+            <Alert severity="warning" sx={{ mt: 3, borderRadius: 2 }}>
               Could not load structured minutes details ({minutesData.error}).
               Transcript and recording may still be available.
             </Alert>
           )}
+
           <TabPanel value={activeTab} index={0}>
             {!hasMinutesError && (
               <Card
                 sx={{
                   borderRadius: 3,
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+                  boxShadow: `0 8px 24px ${alpha(
+                    theme.palette.common.black,
+                    0.05
+                  )}`,
+                  mt: 1,
                 }}
               >
-                <CardContent sx={{ p: 4 }}>
+                <CardContent sx={{ p: { xs: 2, md: 3 } }}>
                   <AnimatedSection
                     title="Meeting Overview"
                     icon={<People />}
@@ -599,8 +812,8 @@ const MeetingDetails = () => {
                         mb: 4,
                       }}
                     >
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
+                      <Grid container spacing={3} alignItems="center">
+                        <Grid item xs={12} md={6}>
                           <Typography
                             variant="subtitle2"
                             color="text.secondary"
@@ -612,152 +825,263 @@ const MeetingDetails = () => {
                             {formattedDate}, {formattedTime}
                           </Typography>
                         </Grid>
-                        {minutesData?.participants && (
-                          <Grid item xs={12} md={4}>
-                            <Typography
-                              variant="subtitle2"
-                              color="text.secondary"
-                              gutterBottom
+                        <Grid item xs={12} md={isEditingParticipants ? 12 : 6}>
+                          <SectionHeader
+                            title="Participants"
+                            onEdit={() => handleEdit("participants")}
+                            isEditing={isEditingParticipants}
+                          />
+                          {isEditingParticipants ? (
+                            <EditInterface
+                              value={editedParticipantsText}
+                              onChange={(e) =>
+                                setEditedParticipantsText(e.target.value)
+                              }
+                              onSave={() => handleSave("participants")}
+                              onCancel={() => handleCancel("participants")}
+                              label="Participants"
+                              helperText="Enter each participant on a new line."
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 0.5,
+                              }}
                             >
-                              Participants
-                            </Typography>
-                            <Typography variant="body1">
-                              {Array.isArray(minutesData.participants)
-                                ? minutesData.participants.join(", ")
-                                : minutesData.participants}
-                            </Typography>
-                          </Grid>
-                        )}
+                              {minutesData.participants?.length > 0 ? (
+                                minutesData.participants.map((p, i) => (
+                                  <Chip key={i} label={p} size="small" />
+                                ))
+                              ) : (
+                                <Typography color="text.secondary">
+                                  Not specified.
+                                </Typography>
+                              )}
+                            </Box>
+                          )}
+                        </Grid>
                       </Grid>
                     </Box>
+                  </AnimatedSection>
 
-                    {minutesData.agenda && (
-                      <Box sx={{ mb: 4 }}>
-                        <Typography variant="h6" fontWeight={600} gutterBottom>
-                          Agenda
-                        </Typography>
-                        <Box component="div">
-                          {(Array.isArray(minutesData.agenda)
-                            ? minutesData.agenda
-                            : [minutesData.agenda]
-                          ).map((item, index) => (
+                  {minutesData.agenda && minutesData.agenda.length > 0 && (
+                    <Divider sx={{ my: 4 }} />
+                  )}
+                  <AnimatedSection
+                    title="Agenda"
+                    icon={<NoteAlt />}
+                    color={theme.palette.info.main}
+                    delay={0.1}
+                  >
+                    <SectionHeader
+                      title="Agenda"
+                      onEdit={() => handleEdit("agenda")}
+                      isEditing={isEditingAgenda}
+                    />
+                    {isEditingAgenda ? (
+                      <EditInterface
+                        value={editedAgendaText}
+                        onChange={(e) => setEditedAgendaText(e.target.value)}
+                        onSave={() => handleSave("agenda")}
+                        onCancel={() => handleCancel("agenda")}
+                        label="Agenda"
+                        helperText="List each agenda item on a new line."
+                      />
+                    ) : (
+                      <Box
+                        component="ul"
+                        sx={{ pl: 2, m: 0, listStyleType: "disc" }}
+                      >
+                        {minutesData.agenda?.length > 0 ? (
+                          minutesData.agenda.map((item, index) => (
                             <Typography
+                              component="li"
                               key={index}
                               variant="body1"
-                              component="p"
-                              sx={{
-                                mb: 1,
-                                display: "flex",
-                                alignItems: "center",
-                                "&::before": {
-                                  content: '""',
-                                  display: "inline-block",
-                                  width: 6,
-                                  height: 6,
-                                  borderRadius: "50%",
-                                  bgcolor: theme.palette.primary.main,
-                                  mr: 2,
-                                },
-                              }}
+                              sx={{ mb: 0.5 }}
                             >
                               {item}
                             </Typography>
-                          ))}
-                        </Box>
+                          ))
+                        ) : (
+                          <Typography color="text.secondary">
+                            No agenda provided.
+                          </Typography>
+                        )}
                       </Box>
                     )}
                   </AnimatedSection>
+
                   {minutesData.keyPoints &&
-                    Object.keys(minutesData.keyPoints).length > 0 && (
+                    (Array.isArray(minutesData.keyPoints)
+                      ? minutesData.keyPoints.length > 0
+                      : Object.keys(minutesData.keyPoints).length > 0) && (
+                      <Divider sx={{ my: 4 }} />
+                    )}
+
+                  {minutesData.keyPoints &&
+                    (Array.isArray(minutesData.keyPoints)
+                      ? minutesData.keyPoints.length > 0
+                      : Object.keys(minutesData.keyPoints).length > 0) && (
                       <AnimatedSection
                         title="Key Discussion Points"
                         icon={<Comment />}
                         color={theme.palette.info.main}
-                        delay={1}
+                        delay={0.2}
                       >
-                        {Object.entries(minutesData.keyPoints).map(
-                          ([key, value], index) => (
-                            <Box key={index} sx={{ mb: 1.5 }}>
-                              <Typography variant="body1" component="p">
-                                {String(value)}
+                        <SectionHeader
+                          title="Key Discussion Points"
+                          onEdit={() => handleEdit("keyPoints")}
+                          isEditing={isEditingKeyPoints}
+                        />
+                        {isEditingKeyPoints ? (
+                          <EditInterface
+                            value={editedKeyPointsText}
+                            onChange={(e) =>
+                              setEditedKeyPointsText(e.target.value)
+                            }
+                            onSave={() => handleSave("keyPoints")}
+                            onCancel={() => handleCancel("keyPoints")}
+                            label="Key Points"
+                            helperText="List each key point on a new line."
+                          />
+                        ) : (
+                          <Box
+                            component="ul"
+                            sx={{ pl: 2, m: 0, listStyleType: "disc" }}
+                          >
+                            {minutesData.keyPoints?.length > 0 ? (
+                              minutesData.keyPoints.map((item, index) => (
+                                <Typography
+                                  component="li"
+                                  key={index}
+                                  variant="body1"
+                                  sx={{ mb: 0.5 }}
+                                >
+                                  {String(item)}
+                                </Typography>
+                              ))
+                            ) : (
+                              <Typography color="text.secondary">
+                                No key points recorded.
                               </Typography>
-                            </Box>
-                          )
+                            )}
+                          </Box>
                         )}
                       </AnimatedSection>
                     )}
 
-                  {minutesData.decisions && (
-                    <AnimatedSection
-                      title="Decisions Made"
-                      icon={<Lightbulb />}
-                      color={theme.palette.warning.main}
-                      delay={2}
-                    >
-                      <Box
-                        sx={{
-                          p: 3,
-                          borderRadius: 3,
-                          bgcolor: alpha(theme.palette.warning.main, 0.05),
-                          border: "1px solid",
-                          borderColor: alpha(theme.palette.warning.main, 0.1),
-                          mb: 3,
-                        }}
+                  {minutesData.decisions &&
+                    minutesData.decisions.length > 0 && (
+                      <Divider sx={{ my: 4 }} />
+                    )}
+
+                  {minutesData.decisions &&
+                    minutesData.decisions.length > 0 && (
+                      <AnimatedSection
+                        title="Decisions Made"
+                        icon={<Lightbulb />}
+                        color={theme.palette.warning.main}
+                        delay={0.3}
                       >
-                        {(Array.isArray(minutesData.decisions)
-                          ? minutesData.decisions
-                          : [minutesData.decisions]
-                        ).map((line, index) => (
-                          <Box
-                            key={index}
-                            sx={{
-                              display: "flex",
-                              mb: 2,
-                              "&:last-child": { mb: 0 },
-                            }}
-                          >
-                            <CheckCircle
-                              sx={{
-                                color: theme.palette.success.main,
-                                mr: 2,
-                                mt: 0.3,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <Typography variant="body1">{line}</Typography>
+                        <SectionHeader
+                          title="Decisions Made"
+                          onEdit={() => handleEdit("decisions")}
+                          isEditing={isEditingDecisions}
+                        />
+                        {isEditingDecisions ? (
+                          <EditInterface
+                            value={editedDecisionsText}
+                            onChange={(e) =>
+                              setEditedDecisionsText(e.target.value)
+                            }
+                            onSave={() => handleSave("decisions")}
+                            onCancel={() => handleCancel("decisions")}
+                            label="Decisions"
+                            helperText="List each decision on a new line."
+                          />
+                        ) : (
+                          <Box>
+                            {minutesData.decisions?.length > 0 ? (
+                              minutesData.decisions.map((line, index) => (
+                                <Box
+                                  key={index}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    mb: 1,
+                                    "&:last-child": { mb: 0 },
+                                  }}
+                                >
+                                  <CheckCircle
+                                    sx={{
+                                      color: theme.palette.success.main,
+                                      mr: 1.5,
+                                      fontSize: "1.2rem",
+                                    }}
+                                  />
+                                  <Typography variant="body1">
+                                    {line}
+                                  </Typography>
+                                </Box>
+                              ))
+                            ) : (
+                              <Typography color="text.secondary">
+                                No decisions recorded.
+                              </Typography>
+                            )}
                           </Box>
-                        ))}
-                      </Box>
-                    </AnimatedSection>
+                        )}
+                      </AnimatedSection>
+                    )}
+
+                  {actionItems && actionItems.length > 0 && (
+                    <Divider sx={{ my: 4 }} />
                   )}
 
-                  {actionItems.length > 0 && (
-                    <AnimatedSection
+                  <AnimatedSection
+                    title="Action Items"
+                    icon={<AssignmentTurnedIn />}
+                    color={theme.palette.success.main}
+                    delay={0.4}
+                  >
+                    <SectionHeader
                       title="Action Items"
-                      icon={<AssignmentTurnedIn />}
-                      color={theme.palette.success.main}
-                      delay={3}
-                    >
+                      onEdit={() => handleEdit("actionItems")}
+                      isEditing={isEditingActionItems}
+                    />
+                    {isEditingActionItems ? (
+                      <EditInterface
+                        value={editedActionItemsText}
+                        onChange={(e) =>
+                          setEditedActionItemsText(e.target.value)
+                        }
+                        onSave={() => handleSave("actionItems")}
+                        onCancel={() => handleCancel("actionItems")}
+                        label="Action Items"
+                        helperText="Enter each action item on a new line. Note: Assignee/Due Date/Completion status are not directly editable in this view and will be reset on save."
+                        rows={10}
+                      />
+                    ) : actionItems.length > 0 ? (
                       <Box
                         sx={{
-                          borderRadius: 3,
-                          border: "1px solid",
-                          borderColor: theme.palette.divider,
+                          borderRadius: 2,
+                          border: `1px solid ${theme.palette.divider}`,
                           overflow: "hidden",
-                          mb: 3,
                         }}
                       >
                         {actionItems.map((item, index) => (
                           <Box
-                            key={index}
+                            key={item.id || index}
                             sx={{
                               p: 2,
                               bgcolor: "background.paper",
                               borderBottom:
                                 index < actionItems.length - 1
-                                  ? "1px solid"
+                                  ? `1px solid ${theme.palette.divider}`
                                   : "none",
-                              borderColor: theme.palette.divider,
                               display: "flex",
                               alignItems: "center",
                               gap: 2,
@@ -768,8 +1092,11 @@ const MeetingDetails = () => {
                                 width: 32,
                                 height: 32,
                                 bgcolor: item.complete
-                                  ? theme.palette.success.main
-                                  : theme.palette.primary.main,
+                                  ? theme.palette.success.light
+                                  : theme.palette.primary.light,
+                                color: item.complete
+                                  ? theme.palette.success.contrastText
+                                  : theme.palette.primary.contrastText,
                               }}
                             >
                               {item.assignee?.[0]?.toUpperCase() || "?"}
@@ -788,215 +1115,228 @@ const MeetingDetails = () => {
                               >
                                 {item.content}
                               </Typography>
-                              <Box
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  mt: 0.5,
-                                }}
-                              >
-                                {item.assignee && (
-                                  <>
-                                    <Typography
-                                      variant="caption"
-                                      color="text.secondary"
-                                    >
-                                      Assigned:{" "}
-                                      <span style={{ fontWeight: 600 }}>
-                                        {item.assignee}
-                                      </span>
-                                    </Typography>
-                                    <Divider
-                                      orientation="vertical"
-                                      flexItem
-                                      sx={{ mx: 1, my: 0.5 }}
-                                    />
-                                  </>
-                                )}
-                                {item.dueDate && (
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                  >
-                                    Due:{" "}
-                                    <span style={{ fontWeight: 600 }}>
-                                      {item.dueDate}
-                                    </span>
-                                  </Typography>
-                                )}
-                              </Box>
+                              {(item.assignee || item.dueDate) && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  component="div"
+                                  sx={{ mt: 0.5 }}
+                                >
+                                  {item.assignee &&
+                                    `Assigned: ${item.assignee}`}
+                                  {item.assignee && item.dueDate && " | "}
+                                  {item.dueDate && `Due: ${item.dueDate}`}
+                                </Typography>
+                              )}
                             </Box>
                             <Chip
                               label={item.complete ? "Completed" : "Pending"}
                               size="small"
                               color={item.complete ? "success" : "default"}
-                              sx={{ fontWeight: 500, height: 24 }}
+                              sx={{
+                                fontWeight: 500,
+                                height: 24,
+                                borderRadius: "8px",
+                              }}
                             />
                           </Box>
                         ))}
                       </Box>
-                    </AnimatedSection>
-                  )}
-
-                  {minutesData.nextSteps && (
-                    <AnimatedSection
-                      title="Next Steps"
-                      icon={<Schedule />}
-                      color={theme.palette.secondary.main}
-                      delay={4}
-                    >
-                      <Typography variant="body1" component="div">
-                        {minutesData.nextSteps.split("\n").map(
-                          (line, index) =>
-                            line.trim() && (
-                              <Typography
-                                key={index}
-                                variant="body1"
-                                component="p"
-                                sx={{ mb: 1.5 }}
-                              >
-                                {line}
-                              </Typography>
-                            )
-                        )}
-                      </Typography>
-                    </AnimatedSection>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </TabPanel>
-          <TabPanel value={activeTab} index={1}>
-            <Card
-              sx={{
-                borderRadius: 3,
-                boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
-              }}
-            >
-              <CardContent sx={{ p: 4 }}>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 4,
-                  }}
-                >
-                  <Typography variant="h5" fontWeight={600}>
-                    Full Transcript
-                  </Typography>
-                </Box>
-                {minutesData?.transcription ? (
-                  <Box
-                    sx={{
-                      p: 3,
-                      borderRadius: 3,
-                      border: "1px solid",
-                      borderColor: theme.palette.divider,
-                      bgcolor: alpha(theme.palette.background.paper, 0.6),
-                      maxHeight: "60vh",
-                      overflow: "auto",
-                    }}
-                  >
-                    <Typography
-                      variant="body1"
-                      component="div"
-                      sx={{ lineHeight: 1.8, whiteSpace: "pre-wrap" }}
-                    >
-                      {minutesData.transcription}
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Box sx={{ textAlign: "center", py: 6 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      Transcript not available.
-                    </Typography>
-                  </Box>
-                )}
-              </CardContent>
-            </Card>
-          </TabPanel>
-          <TabPanel value={activeTab} index={2}>
-            {!hasMinutesError && (
-              <Card
-                sx={{
-                  borderRadius: 3,
-                  boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
-                }}
-              >
-                <CardContent sx={{ p: 4 }}>
-                  <Box sx={{ mb: 4 }}>
-                    <Typography variant="h5" fontWeight={600}>
-                      Action Items Timeline
-                    </Typography>
-                  </Box>
-                  <Box sx={{ ml: 2 }}>
-                    {actionItems.length > 0 ? (
-                      actionItems.map((item, index) => (
-                        <TimelinePoint
-                          key={index}
-                          time={`Task ${index + 1}`}
-                          content={`${item.content}${
-                            item.assignee ? ` (Assignee: ${item.assignee})` : ""
-                          }${item.dueDate ? ` (Due: ${item.dueDate})` : ""}`}
-                          type="action"
-                          delay={index + 1}
-                        />
-                      ))
                     ) : (
                       <Typography color="text.secondary">
                         No action items identified.
                       </Typography>
                     )}
-                  </Box>
+                  </AnimatedSection>
+
+                  {minutesData.nextSteps && <Divider sx={{ my: 4 }} />}
+                  <AnimatedSection
+                    title="Next Steps"
+                    icon={<Schedule />}
+                    color={theme.palette.secondary.main}
+                    delay={0.5}
+                  >
+                    <SectionHeader
+                      title="Next Steps"
+                      onEdit={() => handleEdit("nextSteps")}
+                      isEditing={isEditingNextSteps}
+                    />
+                    {isEditingNextSteps ? (
+                      <EditInterface
+                        value={editedNextStepsText}
+                        onChange={(e) => setEditedNextStepsText(e.target.value)}
+                        onSave={() => handleSave("nextSteps")}
+                        onCancel={() => handleCancel("nextSteps")}
+                        label="Next Steps"
+                        helperText="Describe the next steps."
+                      />
+                    ) : (
+                      <Typography
+                        variant="body1"
+                        sx={{ whiteSpace: "pre-wrap" }}
+                      >
+                        {minutesData.nextSteps || "No next steps specified."}
+                      </Typography>
+                    )}
+                  </AnimatedSection>
                 </CardContent>
               </Card>
             )}
           </TabPanel>
+
+          <TabPanel value={activeTab} index={1}>
+            <Card
+              sx={{
+                borderRadius: 3,
+                boxShadow: `0 8px 24px ${alpha(
+                  theme.palette.common.black,
+                  0.05
+                )}`,
+              }}
+            >
+              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                <SectionHeader
+                  title="Full Transcript"
+                  onEdit={() => handleEdit("transcription")}
+                  isEditing={isEditingTranscription}
+                />
+                {isEditingTranscription ? (
+                  <EditInterface
+                    value={editedTranscriptionText}
+                    onChange={(e) => setEditedTranscriptionText(e.target.value)}
+                    onSave={() => handleSave("transcription")}
+                    onCancel={() => handleCancel("transcription")}
+                    label="Transcript"
+                    helperText="Edit the meeting transcript."
+                    rows={15}
+                  />
+                ) : minutesData?.transcription ? (
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: 2,
+                      border: `1px solid ${theme.palette.divider}`,
+                      bgcolor: alpha(theme.palette.background.paper, 0.7),
+                      maxHeight: "60vh",
+                      overflow: "auto",
+                      whiteSpace: "pre-wrap",
+                      lineHeight: 1.7,
+                    }}
+                  >
+                    {minutesData.transcription}
+                  </Box>
+                ) : (
+                  <Typography
+                    color="text.secondary"
+                    sx={{ textAlign: "center", py: 3 }}
+                  >
+                    Transcript not available.
+                  </Typography>
+                )}
+              </CardContent>
+            </Card>
+          </TabPanel>
+
+          <TabPanel value={activeTab} index={2}>
+            {!hasMinutesError && (
+              <Card
+                sx={{
+                  borderRadius: 3,
+                  boxShadow: `0 8px 24px ${alpha(
+                    theme.palette.common.black,
+                    0.05
+                  )}`,
+                }}
+              >
+                <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                  <SectionHeader
+                    title="Action Items Timeline"
+                    onEdit={() => {
+                      setSnackbarMessage(
+                        "Editing action items from this view is not supported. Please use the Minutes tab for editing action items."
+                      );
+                      setSnackbarSeverity("info");
+                      setSnackbarOpen(true);
+                    }}
+                    isEditing={false}
+                  />
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 2 }}
+                  >
+                    This view provides a timeline overview of action items. For
+                    editing, please refer to the "Minutes" tab.
+                  </Typography>
+                  {actionItems.length > 0 ? (
+                    actionItems.map((item, index) => (
+                      <TimelinePoint
+                        key={item.id || index}
+                        time={
+                          item.dueDate
+                            ? `Due: ${item.dueDate}`
+                            : `Task ${index + 1}`
+                        }
+                        content={`${item.content}${
+                          item.assignee ? ` (Assignee: ${item.assignee})` : ""
+                        }`}
+                        type={item.complete ? "completed" : "action"}
+                        delay={index}
+                      />
+                    ))
+                  ) : (
+                    <Typography color="text.secondary">
+                      No action items identified.
+                    </Typography>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </TabPanel>
+
           <TabPanel value={activeTab} index={3}>
             <Card
               sx={{
                 borderRadius: 3,
-                boxShadow: "0 10px 40px rgba(0,0,0,0.05)",
+                boxShadow: `0 8px 24px ${alpha(
+                  theme.palette.common.black,
+                  0.05
+                )}`,
               }}
             >
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" fontWeight={600} sx={{ mb: 4 }}>
+              <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+                <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>
                   Meeting Recording
                 </Typography>
                 {currentMeeting.audioUrl ? (
                   <AudioPlayer audioUrl={currentMeeting.audioUrl} />
                 ) : (
-                  <Box sx={{ textAlign: "center", py: 6 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      Audio recording not available.
-                    </Typography>
-                  </Box>
+                  <Typography
+                    color="text.secondary"
+                    sx={{ textAlign: "center", py: 3 }}
+                  >
+                    Audio recording not available.
+                  </Typography>
                 )}
               </CardContent>
             </Card>
           </TabPanel>
         </Box>
       </Container>
+
       <Menu
         anchorEl={shareMenuAnchor}
         open={Boolean(shareMenuAnchor)}
         onClose={handleCloseShareMenu}
         PaperProps={{
           elevation: 3,
-          sx: { mt: 1.5, borderRadius: 2, minWidth: 180 },
+          sx: { mt: 1.5, borderRadius: 2, minWidth: 200 },
         }}
       >
-        {shareOptions?.map((option) => (
-          <MenuItem
-            key={option?.label}
-            onClick={() => {
-              option?.onClick();
-              handleCloseShareMenu();
-            }}
-          >
-            <ListItemIcon>{option?.icon}</ListItemIcon>
-            <ListItemText primary={option?.label} />
+        {shareOptions.map((option) => (
+          <MenuItem key={option.label} onClick={option.onClick}>
+            <ListItemIcon>{option.icon}</ListItemIcon>
+            <ListItemText primary={option.label} />
           </MenuItem>
         ))}
       </Menu>
@@ -1025,16 +1365,11 @@ const MeetingDetails = () => {
       <Dialog
         open={deleteDialogOpen}
         onClose={() => setDeleteDialogOpen(false)}
-        aria-labelledby="delete-meeting-dialog-title"
-        aria-describedby="delete-meeting-dialog-description"
       >
-        <DialogTitle id="delete-meeting-dialog-title">
-          Delete Meeting
-        </DialogTitle>
+        <DialogTitle>Delete Meeting</DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-meeting-dialog-description">
-            Are you sure you want to delete this meeting? This action cannot be
-            undone.
+          <DialogContentText>
+            Are you sure? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -1050,11 +1385,19 @@ const MeetingDetails = () => {
       </Dialog>
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={4000}
         onClose={() => setSnackbarOpen(false)}
-        message={snackbarMessage}
-        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-      />
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+          variant="filled"
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
