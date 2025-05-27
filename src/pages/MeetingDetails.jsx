@@ -61,6 +61,7 @@ import moment from "moment";
 import AudioPlayer from "../components/MeetingDetails/AudioPlayer";
 import AnimatedSection from "../components/MeetingDetails/AnimatedSection";
 import MeetingDetailsSkeleton from "../components/UI/MeetingDetailsSkeleton";
+
 const TabPanel = (props) => {
   const { children, value, index, ...other } = props;
   return (
@@ -237,7 +238,7 @@ const MeetingDetails = () => {
   const handleCloseActionsMenu = () => setActionsMenuAnchor(null);
 
   const formattedDate = currentMeeting?.createdAt?.toDate()
-    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D,YYYY")
+    ? moment(currentMeeting.createdAt.toDate()).format("MMMM D, YYYY")
     : "N/A";
   const formattedTime = currentMeeting?.createdAt?.toDate()
     ? moment(currentMeeting.createdAt.toDate()).format("h:mm A")
@@ -415,29 +416,43 @@ const MeetingDetails = () => {
   let parsedActionItems = [];
   if (minutesData?.actionItems) {
     if (Array.isArray(minutesData.actionItems)) {
-      parsedActionItems = minutesData.actionItems.map((item, index) => {
-        if (typeof item === "string") {
-          const assigneeMatch = item.match(/\[(.*?)\]/);
-          const dueDateMatch = item.match(/\[Due:\s*(.*?)\]/);
-          return {
-            id: `item-${index}`,
-            content: item
-              .replace(/-\s*\[.*?\]\s*/g, "")
-              .replace(/\[Due:.*?\]/g, "")
-              .trim(),
-            assignee: assigneeMatch ? assigneeMatch[1] : null,
-            dueDate: dueDateMatch ? dueDateMatch[1] : null,
-            complete: item.includes("[x]") || item.includes("[X]"),
-          };
-        } else if (typeof item === "object" && item !== null && item.content) {
-          return { id: `item-${index}`, ...item };
-        }
-        return {
-          id: `item-${index}`,
-          content: "Invalid action item format",
-          complete: false,
-        };
-      });
+      parsedActionItems = minutesData.actionItems
+        .map((item, index) => {
+          if (typeof item === "string") {
+            const dueDateMatch = item.match(/\[Due:\s*(.*?)\]/);
+            let assigneeMatch = item.match(/\[(.*?)\]/);
+
+            // If the assignee match is the same as the due date match,
+            // it means there's no assignee.
+            if (
+              assigneeMatch &&
+              dueDateMatch &&
+              assigneeMatch[0] === dueDateMatch[0]
+            ) {
+              assigneeMatch = null;
+            }
+
+            return {
+              id: `item-${index}`,
+              content: item
+                .replace(/-\s*/, "")
+                .replace(/\[Due:.*?\]/g, "")
+                .replace(/\[.*?\]/, "") // Use non-global replace to only remove the first bracket match (the assignee)
+                .trim(),
+              assignee: assigneeMatch ? assigneeMatch[1] : null,
+              dueDate: dueDateMatch ? dueDateMatch[1] : null,
+              complete: item.includes("[x]") || item.includes("[X]"),
+            };
+          } else if (
+            typeof item === "object" &&
+            item !== null &&
+            item.content
+          ) {
+            return { id: `item-${index}`, ...item };
+          }
+          return null; // Return null for invalid formats
+        })
+        .filter(Boolean); // Filter out any null entries
     } else if (typeof minutesData.actionItems === "string") {
       parsedActionItems = minutesData.actionItems
         .split("\n")
@@ -875,11 +890,6 @@ const MeetingDetails = () => {
                     color={theme.palette.info.main}
                     delay={0.1}
                   >
-                    <SectionHeader
-                      title="Agenda"
-                      onEdit={() => handleEdit("agenda")}
-                      isEditing={isEditingAgenda}
-                    />
                     {isEditingAgenda ? (
                       <EditInterface
                         value={editedAgendaText}
@@ -915,9 +925,7 @@ const MeetingDetails = () => {
                   </AnimatedSection>
 
                   {minutesData.keyPoints &&
-                    (Array.isArray(minutesData.keyPoints)
-                      ? minutesData.keyPoints.length > 0
-                      : Object.keys(minutesData.keyPoints).length > 0) && (
+                    minutesData.keyPoints.length > 0 && (
                       <Divider sx={{ my: 4 }} />
                     )}
 
@@ -931,11 +939,6 @@ const MeetingDetails = () => {
                         color={theme.palette.info.main}
                         delay={0.2}
                       >
-                        <SectionHeader
-                          title="Key Discussion Points"
-                          onEdit={() => handleEdit("keyPoints")}
-                          isEditing={isEditingKeyPoints}
-                        />
                         {isEditingKeyPoints ? (
                           <EditInterface
                             value={editedKeyPointsText}
@@ -1061,7 +1064,7 @@ const MeetingDetails = () => {
                         onSave={() => handleSave("actionItems")}
                         onCancel={() => handleCancel("actionItems")}
                         label="Action Items"
-                        helperText="Enter each action item on a new line. Note: Assignee/Due Date/Completion status are not directly editable in this view and will be reset on save."
+                        helperText="Enter each action item on a new line."
                         rows={10}
                       />
                     ) : actionItems.length > 0 ? (
