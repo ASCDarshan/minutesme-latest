@@ -890,6 +890,11 @@ const MeetingDetails = () => {
                     color={theme.palette.info.main}
                     delay={0.1}
                   >
+                    <SectionHeader
+                      title="Agenda"
+                      onEdit={() => handleEdit("agenda")}
+                      isEditing={isEditingAgenda}
+                    />
                     {isEditingAgenda ? (
                       <EditInterface
                         value={editedAgendaText}
