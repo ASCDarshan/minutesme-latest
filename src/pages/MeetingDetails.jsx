@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, Link as RouterLink, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMeeting } from "../context/MeetingContext";
@@ -405,7 +405,7 @@ const MeetingDetails = () => {
         );
       }
     } catch (e) {
-      setSnackbarMessage(e.message);
+      setSnackbarMessage(e.message || `Error saving ${field}.`);
       setSnackbarSeverity("error");
     } finally {
       setSnackbarOpen(true);
@@ -413,60 +413,121 @@ const MeetingDetails = () => {
     }
   };
 
-  let parsedActionItems = [];
-  if (minutesData?.actionItems) {
-    if (Array.isArray(minutesData.actionItems)) {
-      parsedActionItems = minutesData.actionItems
+  const actionItems = useMemo(() => {
+    const rawActionItems = minutesData?.actionItems;
+    let parsed = [];
+
+    const parseSingleItemString = (itemText, index) => {
+      let currentItemText = String(itemText);
+
+      const isCompleteRegex =
+        /^\s*-\s*\[\s*[xX]\s*\]\s*|^\s*\[\s*[xX]\s*\]\s*-\s*/;
+      const isComplete = isCompleteRegex.test(currentItemText);
+
+      if (isComplete) {
+        currentItemText = currentItemText.replace(isCompleteRegex, "").trim();
+      } else {
+        if (currentItemText.startsWith("- ")) {
+          currentItemText = currentItemText.substring(2).trim();
+        }
+      }
+
+      const dueDateMatch = currentItemText.match(/\[Due:\s*([^\]]+)\]$/);
+      let dueDate = dueDateMatch ? dueDateMatch[1].trim() : null;
+      if (dueDate === "not specified" || dueDate === "unspecified") {
+        dueDate = null;
+      }
+
+      if (dueDateMatch) {
+        currentItemText = currentItemText
+          .substring(0, dueDateMatch.index)
+          .trim();
+      }
+
+      // Regex for assignee: ^\[\s*([^\]]*)\s*\]
+      // Allows for empty content within brackets e.g. "[]" which means no assignee
+      // The * instead of + in ([^\]]*) is key for empty assignees.
+      let assigneeMatch = currentItemText.match(/^\[\s*([^\]]*)\s*\]/);
+      let assignee = null;
+      if (assigneeMatch) {
+        assignee = assigneeMatch[1].trim();
+        if (assignee === "") {
+          // If AI outputs "[]" for no assignee
+          assignee = null;
+        }
+        currentItemText = currentItemText
+          .substring(assigneeMatch[0].length)
+          .trim();
+      } else {
+        // Fallback for "Assignee Name: Task description" format (for compatibility with older data)
+        const colonAssigneeMatch = currentItemText.match(/^([^:]+):\s+/);
+        if (colonAssigneeMatch) {
+          assignee = colonAssigneeMatch[1].trim();
+          currentItemText = currentItemText
+            .substring(colonAssigneeMatch[0].length)
+            .trim();
+        }
+      }
+
+      const content = currentItemText;
+
+      return {
+        id: `item-parsed-${index}`,
+        content,
+        assignee,
+        dueDate,
+        complete: isComplete,
+      };
+    };
+
+    if (Array.isArray(rawActionItems)) {
+      parsed = rawActionItems
         .map((item, index) => {
           if (typeof item === "string") {
-            const dueDateMatch = item.match(/\[Due:\s*(.*?)\]/);
-            let assigneeMatch = item.match(/\[(.*?)\]/);
-
-            // If the assignee match is the same as the due date match,
-            // it means there's no assignee.
-            if (
-              assigneeMatch &&
-              dueDateMatch &&
-              assigneeMatch[0] === dueDateMatch[0]
-            ) {
-              assigneeMatch = null;
-            }
-
-            return {
-              id: `item-${index}`,
-              content: item
-                .replace(/-\s*/, "")
-                .replace(/\[Due:.*?\]/g, "")
-                .replace(/\[.*?\]/, "") // Use non-global replace to only remove the first bracket match (the assignee)
-                .trim(),
-              assignee: assigneeMatch ? assigneeMatch[1] : null,
-              dueDate: dueDateMatch ? dueDateMatch[1] : null,
-              complete: item.includes("[x]") || item.includes("[X]"),
-            };
+            return parseSingleItemString(item, `arr-${index}`);
           } else if (
             typeof item === "object" &&
             item !== null &&
-            item.content
+            typeof item.content === "string"
           ) {
-            return { id: `item-${index}`, ...item };
+            let effectiveDueDate = item.dueDate;
+            if (
+              effectiveDueDate === "not specified" ||
+              effectiveDueDate === "unspecified"
+            ) {
+              effectiveDueDate = null;
+            }
+            return {
+              id: item.id || `item-object-${index}`,
+              content: item.content,
+              assignee: item.assignee || null,
+              dueDate: effectiveDueDate,
+              complete: item.complete || false,
+            };
           }
-          return null; // Return null for invalid formats
+          return null;
         })
-        .filter(Boolean); // Filter out any null entries
-    } else if (typeof minutesData.actionItems === "string") {
-      parsedActionItems = minutesData.actionItems
+        .filter(Boolean);
+    } else if (typeof rawActionItems === "string") {
+      parsed = rawActionItems
         .split("\n")
         .filter((line) => line.trim() !== "")
-        .map((line, index) => ({
-          id: `item-${index}`,
-          content: line.trim(),
-          assignee: null,
-          dueDate: null,
-          complete: false,
-        }));
+        .map((line, index) => parseSingleItemString(line, `str-${index}`));
     }
-  }
-  const actionItems = parsedActionItems;
+    return parsed;
+  }, [minutesData?.actionItems]);
+
+  const displayableKeyPoints = useMemo(() => {
+    const kp = minutesData?.keyPoints;
+    if (!kp) return [];
+    if (Array.isArray(kp)) {
+      return kp.map(String);
+    }
+    if (typeof kp === "object" && kp !== null) {
+      return Object.values(kp).map(String);
+    }
+    return [];
+  }, [minutesData?.keyPoints]);
 
   const generatePlainTextSummary = () => {
     let summary = `Meeting Title: ${
@@ -484,17 +545,10 @@ const MeetingDetails = () => {
         minutesData.agenda.map((item) => `- ${item}`).join("\n") +
         "\n";
     }
-    if (
-      minutesData?.keyPoints &&
-      (Array.isArray(minutesData.keyPoints)
-        ? minutesData.keyPoints.length > 0
-        : Object.keys(minutesData.keyPoints).length > 0)
-    ) {
+    if (displayableKeyPoints.length > 0) {
       summary += "\nKey Discussion Points:\n";
-      const keyPointsArray = Array.isArray(minutesData.keyPoints)
-        ? minutesData.keyPoints
-        : Object.values(minutesData.keyPoints);
-      summary += keyPointsArray.map((item) => `- ${item}`).join("\n") + "\n";
+      summary +=
+        displayableKeyPoints.map((item) => `- ${item}`).join("\n") + "\n";
     }
     if (minutesData?.decisions?.length) {
       summary +=
@@ -884,33 +938,33 @@ const MeetingDetails = () => {
                   {minutesData.agenda && minutesData.agenda.length > 0 && (
                     <Divider sx={{ my: 4 }} />
                   )}
-                  <AnimatedSection
-                    title="Agenda"
-                    icon={<NoteAlt />}
-                    color={theme.palette.info.main}
-                    delay={0.1}
-                  >
-                    <SectionHeader
+                  {minutesData.agenda && minutesData.agenda.length > 0 && (
+                    <AnimatedSection
                       title="Agenda"
-                      onEdit={() => handleEdit("agenda")}
-                      isEditing={isEditingAgenda}
-                    />
-                    {isEditingAgenda ? (
-                      <EditInterface
-                        value={editedAgendaText}
-                        onChange={(e) => setEditedAgendaText(e.target.value)}
-                        onSave={() => handleSave("agenda")}
-                        onCancel={() => handleCancel("agenda")}
-                        label="Agenda"
-                        helperText="List each agenda item on a new line."
+                      icon={<NoteAlt />}
+                      color={theme.palette.info.main}
+                      delay={0.1}
+                    >
+                      <SectionHeader
+                        title="Agenda"
+                        onEdit={() => handleEdit("agenda")}
+                        isEditing={isEditingAgenda}
                       />
-                    ) : (
-                      <Box
-                        component="ul"
-                        sx={{ pl: 2, m: 0, listStyleType: "disc" }}
-                      >
-                        {minutesData.agenda?.length > 0 ? (
-                          minutesData.agenda.map((item, index) => (
+                      {isEditingAgenda ? (
+                        <EditInterface
+                          value={editedAgendaText}
+                          onChange={(e) => setEditedAgendaText(e.target.value)}
+                          onSave={() => handleSave("agenda")}
+                          onCancel={() => handleCancel("agenda")}
+                          label="Agenda"
+                          helperText="List each agenda item on a new line."
+                        />
+                      ) : (
+                        <Box
+                          component="ul"
+                          sx={{ pl: 2, m: 0, listStyleType: "disc" }}
+                        >
+                          {minutesData.agenda.map((item, index) => (
                             <Typography
                               component="li"
                               key={index}
@@ -919,73 +973,62 @@ const MeetingDetails = () => {
                             >
                               {item}
                             </Typography>
-                          ))
-                        ) : (
-                          <Typography color="text.secondary">
-                            No agenda provided.
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
-                  </AnimatedSection>
+                          ))}
+                        </Box>
+                      )}
+                    </AnimatedSection>
+                  )}
 
-                  {minutesData.keyPoints &&
-                    minutesData.keyPoints.length > 0 && (
-                      <Divider sx={{ my: 4 }} />
-                    )}
-
-                  {minutesData.keyPoints &&
-                    (Array.isArray(minutesData.keyPoints)
-                      ? minutesData.keyPoints.length > 0
-                      : Object.keys(minutesData.keyPoints).length > 0) && (
-                      <AnimatedSection
+                  {displayableKeyPoints.length > 0 && (
+                    <Divider sx={{ my: 4 }} />
+                  )}
+                  {displayableKeyPoints.length > 0 && (
+                    <AnimatedSection
+                      title="Key Discussion Points"
+                      icon={<Comment />}
+                      color={theme.palette.info.main}
+                      delay={0.2}
+                    >
+                      <SectionHeader
                         title="Key Discussion Points"
-                        icon={<Comment />}
-                        color={theme.palette.info.main}
-                        delay={0.2}
-                      >
-                        {isEditingKeyPoints ? (
-                          <EditInterface
-                            value={editedKeyPointsText}
-                            onChange={(e) =>
-                              setEditedKeyPointsText(e.target.value)
-                            }
-                            onSave={() => handleSave("keyPoints")}
-                            onCancel={() => handleCancel("keyPoints")}
-                            label="Key Points"
-                            helperText="List each key point on a new line."
-                          />
-                        ) : (
-                          <Box
-                            component="ul"
-                            sx={{ pl: 2, m: 0, listStyleType: "disc" }}
-                          >
-                            {minutesData.keyPoints?.length > 0 ? (
-                              minutesData.keyPoints.map((item, index) => (
-                                <Typography
-                                  component="li"
-                                  key={index}
-                                  variant="body1"
-                                  sx={{ mb: 0.5 }}
-                                >
-                                  {String(item)}
-                                </Typography>
-                              ))
-                            ) : (
-                              <Typography color="text.secondary">
-                                No key points recorded.
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      </AnimatedSection>
-                    )}
+                        onEdit={() => handleEdit("keyPoints")}
+                        isEditing={isEditingKeyPoints}
+                      />
+                      {isEditingKeyPoints ? (
+                        <EditInterface
+                          value={editedKeyPointsText}
+                          onChange={(e) =>
+                            setEditedKeyPointsText(e.target.value)
+                          }
+                          onSave={() => handleSave("keyPoints")}
+                          onCancel={() => handleCancel("keyPoints")}
+                          label="Key Points"
+                          helperText="List each key point on a new line."
+                        />
+                      ) : (
+                        <Box
+                          component="ul"
+                          sx={{ pl: 2, m: 0, listStyleType: "disc" }}
+                        >
+                          {displayableKeyPoints.map((item, index) => (
+                            <Typography
+                              component="li"
+                              key={index}
+                              variant="body1"
+                              sx={{ mb: 0.5 }}
+                            >
+                              {item}
+                            </Typography>
+                          ))}
+                        </Box>
+                      )}
+                    </AnimatedSection>
+                  )}
 
                   {minutesData.decisions &&
                     minutesData.decisions.length > 0 && (
                       <Divider sx={{ my: 4 }} />
                     )}
-
                   {minutesData.decisions &&
                     minutesData.decisions.length > 0 && (
                       <AnimatedSection
@@ -1012,181 +1055,179 @@ const MeetingDetails = () => {
                           />
                         ) : (
                           <Box>
-                            {minutesData.decisions?.length > 0 ? (
-                              minutesData.decisions.map((line, index) => (
-                                <Box
-                                  key={index}
+                            {minutesData.decisions.map((line, index) => (
+                              <Box
+                                key={index}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  mb: 1,
+                                  "&:last-child": { mb: 0 },
+                                }}
+                              >
+                                <CheckCircle
                                   sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    mb: 1,
-                                    "&:last-child": { mb: 0 },
+                                    color: theme.palette.success.main,
+                                    mr: 1.5,
+                                    fontSize: "1.2rem",
                                   }}
-                                >
-                                  <CheckCircle
-                                    sx={{
-                                      color: theme.palette.success.main,
-                                      mr: 1.5,
-                                      fontSize: "1.2rem",
-                                    }}
-                                  />
-                                  <Typography variant="body1">
-                                    {line}
-                                  </Typography>
-                                </Box>
-                              ))
-                            ) : (
-                              <Typography color="text.secondary">
-                                No decisions recorded.
-                              </Typography>
-                            )}
+                                />
+                                <Typography variant="body1">{line}</Typography>
+                              </Box>
+                            ))}
                           </Box>
                         )}
                       </AnimatedSection>
                     )}
 
-                  {actionItems && actionItems.length > 0 && (
-                    <Divider sx={{ my: 4 }} />
-                  )}
-
-                  <AnimatedSection
-                    title="Action Items"
-                    icon={<AssignmentTurnedIn />}
-                    color={theme.palette.success.main}
-                    delay={0.4}
-                  >
-                    <SectionHeader
+                  {actionItems.length > 0 && <Divider sx={{ my: 4 }} />}
+                  {actionItems.length > 0 && (
+                    <AnimatedSection
                       title="Action Items"
-                      onEdit={() => handleEdit("actionItems")}
-                      isEditing={isEditingActionItems}
-                    />
-                    {isEditingActionItems ? (
-                      <EditInterface
-                        value={editedActionItemsText}
-                        onChange={(e) =>
-                          setEditedActionItemsText(e.target.value)
-                        }
-                        onSave={() => handleSave("actionItems")}
-                        onCancel={() => handleCancel("actionItems")}
-                        label="Action Items"
-                        helperText="Enter each action item on a new line."
-                        rows={10}
+                      icon={<AssignmentTurnedIn />}
+                      color={theme.palette.success.main}
+                      delay={0.4}
+                    >
+                      <SectionHeader
+                        title="Action Items"
+                        onEdit={() => handleEdit("actionItems")}
+                        isEditing={isEditingActionItems}
                       />
-                    ) : actionItems.length > 0 ? (
-                      <Box
-                        sx={{
-                          borderRadius: 2,
-                          border: `1px solid ${theme.palette.divider}`,
-                          overflow: "hidden",
-                        }}
-                      >
-                        {actionItems.map((item, index) => (
-                          <Box
-                            key={item.id || index}
-                            sx={{
-                              p: 2,
-                              bgcolor: "background.paper",
-                              borderBottom:
-                                index < actionItems.length - 1
-                                  ? `1px solid ${theme.palette.divider}`
-                                  : "none",
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 2,
-                            }}
-                          >
-                            <Avatar
+                      {isEditingActionItems ? (
+                        <EditInterface
+                          value={editedActionItemsText}
+                          onChange={(e) =>
+                            setEditedActionItemsText(e.target.value)
+                          }
+                          onSave={() => handleSave("actionItems")}
+                          onCancel={() => handleCancel("actionItems")}
+                          label="Action Items"
+                          helperText="Enter each action item on a new line. Format: - [Assignee (optional)] Task description [Due: Date (optional)]. Mark completed with [x]."
+                          rows={10}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            borderRadius: 2,
+                            border: `1px solid ${theme.palette.divider}`,
+                            overflow: "hidden",
+                          }}
+                        >
+                          {actionItems.map((item, index) => (
+                            <Box
+                              key={item.id || index}
                               sx={{
-                                width: 32,
-                                height: 32,
-                                bgcolor: item.complete
-                                  ? theme.palette.success.light
-                                  : theme.palette.primary.light,
-                                color: item.complete
-                                  ? theme.palette.success.contrastText
-                                  : theme.palette.primary.contrastText,
+                                p: 2,
+                                bgcolor: "background.paper",
+                                borderBottom:
+                                  index < actionItems.length - 1
+                                    ? `1px solid ${theme.palette.divider}`
+                                    : "none",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
                               }}
                             >
-                              {item.assignee?.[0]?.toUpperCase() || "?"}
-                            </Avatar>
-                            <Box sx={{ flexGrow: 1 }}>
-                              <Typography
-                                variant="body1"
+                              <Avatar
                                 sx={{
-                                  textDecoration: item.complete
-                                    ? "line-through"
-                                    : "none",
+                                  width: 32,
+                                  height: 32,
+                                  bgcolor: item.complete
+                                    ? alpha(theme.palette.success.light, 0.7)
+                                    : alpha(theme.palette.primary.light, 0.7),
                                   color: item.complete
-                                    ? "text.secondary"
-                                    : "text.primary",
+                                    ? theme.palette.success.contrastText
+                                    : theme.palette.primary.contrastText,
+                                  fontSize: "0.9rem",
                                 }}
                               >
-                                {item.content}
-                              </Typography>
-                              {(item.assignee || item.dueDate) && (
+                                {item.assignee?.[0]?.toUpperCase() ||
+                                  (item.complete ? (
+                                    <CheckCircle fontSize="small" />
+                                  ) : (
+                                    "?"
+                                  ))}
+                              </Avatar>
+                              <Box sx={{ flexGrow: 1 }}>
                                 <Typography
-                                  variant="caption"
-                                  color="text.secondary"
-                                  component="div"
-                                  sx={{ mt: 0.5 }}
+                                  variant="body1"
+                                  sx={{
+                                    textDecoration: item.complete
+                                      ? "line-through"
+                                      : "none",
+                                    color: item.complete
+                                      ? "text.secondary"
+                                      : "text.primary",
+                                  }}
                                 >
-                                  {item.assignee &&
-                                    `Assigned: ${item.assignee}`}
-                                  {item.assignee && item.dueDate && " | "}
-                                  {item.dueDate && `Due: ${item.dueDate}`}
+                                  {item.content}
                                 </Typography>
-                              )}
+                                {(item.assignee || item.dueDate) && (
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    component="div"
+                                    sx={{ mt: 0.5 }}
+                                  >
+                                    {item.assignee &&
+                                      `Assigned: ${item.assignee}`}
+                                    {item.assignee && item.dueDate && " | "}
+                                    {item.dueDate && `Due: ${item.dueDate}`}
+                                  </Typography>
+                                )}
+                              </Box>
+                              <Chip
+                                label={item.complete ? "Completed" : "Pending"}
+                                size="small"
+                                color={item.complete ? "success" : "default"}
+                                variant={item.complete ? "filled" : "outlined"}
+                                sx={{
+                                  fontWeight: 500,
+                                  height: 24,
+                                  borderRadius: "8px",
+                                }}
+                              />
                             </Box>
-                            <Chip
-                              label={item.complete ? "Completed" : "Pending"}
-                              size="small"
-                              color={item.complete ? "success" : "default"}
-                              sx={{
-                                fontWeight: 500,
-                                height: 24,
-                                borderRadius: "8px",
-                              }}
-                            />
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : (
-                      <Typography color="text.secondary">
-                        No action items identified.
-                      </Typography>
-                    )}
-                  </AnimatedSection>
+                          ))}
+                        </Box>
+                      )}
+                    </AnimatedSection>
+                  )}
 
                   {minutesData.nextSteps && <Divider sx={{ my: 4 }} />}
-                  <AnimatedSection
-                    title="Next Steps"
-                    icon={<Schedule />}
-                    color={theme.palette.secondary.main}
-                    delay={0.5}
-                  >
-                    <SectionHeader
+                  {minutesData.nextSteps && (
+                    <AnimatedSection
                       title="Next Steps"
-                      onEdit={() => handleEdit("nextSteps")}
-                      isEditing={isEditingNextSteps}
-                    />
-                    {isEditingNextSteps ? (
-                      <EditInterface
-                        value={editedNextStepsText}
-                        onChange={(e) => setEditedNextStepsText(e.target.value)}
-                        onSave={() => handleSave("nextSteps")}
-                        onCancel={() => handleCancel("nextSteps")}
-                        label="Next Steps"
-                        helperText="Describe the next steps."
+                      icon={<Schedule />}
+                      color={theme.palette.secondary.main}
+                      delay={0.5}
+                    >
+                      <SectionHeader
+                        title="Next Steps"
+                        onEdit={() => handleEdit("nextSteps")}
+                        isEditing={isEditingNextSteps}
                       />
-                    ) : (
-                      <Typography
-                        variant="body1"
-                        sx={{ whiteSpace: "pre-wrap" }}
-                      >
-                        {minutesData.nextSteps || "No next steps specified."}
-                      </Typography>
-                    )}
-                  </AnimatedSection>
+                      {isEditingNextSteps ? (
+                        <EditInterface
+                          value={editedNextStepsText}
+                          onChange={(e) =>
+                            setEditedNextStepsText(e.target.value)
+                          }
+                          onSave={() => handleSave("nextSteps")}
+                          onCancel={() => handleCancel("nextSteps")}
+                          label="Next Steps"
+                          helperText="Describe the next steps."
+                        />
+                      ) : (
+                        <Typography
+                          variant="body1"
+                          sx={{ whiteSpace: "pre-wrap" }}
+                        >
+                          {minutesData.nextSteps || "No next steps specified."}
+                        </Typography>
+                      )}
+                    </AnimatedSection>
+                  )}
                 </CardContent>
               </Card>
             )}
@@ -1229,6 +1270,7 @@ const MeetingDetails = () => {
                       overflow: "auto",
                       whiteSpace: "pre-wrap",
                       lineHeight: 1.7,
+                      color: "text.primary",
                     }}
                   >
                     {minutesData.transcription}
@@ -1289,7 +1331,7 @@ const MeetingDetails = () => {
                           item.assignee ? ` (Assignee: ${item.assignee})` : ""
                         }`}
                         type={item.complete ? "completed" : "action"}
-                        delay={index}
+                        delay={index * 0.1}
                       />
                     ))
                   ) : (
